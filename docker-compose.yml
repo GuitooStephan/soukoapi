@@ -1,0 +1,58 @@
+version: "3"
+
+services:
+  db:
+    restart: always
+    image: postgres:latest
+    ports:
+      - "5432"
+    environment:
+      POSTGRES_DB: souko
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: python3 manage.py runserver 0.0.0.0:1700
+    volumes:
+      - .:/app
+    ports:
+      - "1700:1700"
+    env_file: .env
+    links:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DATABASE=postgres
+    depends_on:
+      - db
+      - redis
+
+  celery:
+    build: .
+    command: bash -c "./manage.py run-worker"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - db
+
+  celery-beat:
+    build: .
+    command: bash -c "celery -A soukoapi beat -l info --scheduler main.scheduler.SmartScheduler --pidfile="
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - db
