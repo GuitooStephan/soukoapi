@@ -58,12 +58,10 @@ jobs:
   deploy:
     needs: test
     if: ${{ github.ref == 'refs/heads/master' }}
+    environment: staging_environment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install heroku
-        run: |
-          apt-get install -y heroku
       - uses: akhileshns/heroku-deploy@v3.8.8 # This is the action
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
