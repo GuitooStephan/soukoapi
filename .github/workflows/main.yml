@@ -36,7 +36,13 @@ jobs:
           POSTGRES_HOST_AUTH_METHOD: trust
 
     env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+      EMAIL_BASE_URL: ${{ secrets.EMAIL_BASE_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      TEMPLATE_EMAIL_WITH_URL_ID: ${{ secrets.TEMPLATE_EMAIL_WITH_URL_ID }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
