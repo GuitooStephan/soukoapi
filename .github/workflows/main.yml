@@ -23,6 +23,8 @@ jobs:
 
     container: python:3.6.8
 
+    environment: staging_environment
+
     services:
       db:
         image: postgres:latest
