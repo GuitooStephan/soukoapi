@@ -67,3 +67,4 @@ jobs:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "souko-api"
           heroku_email: "guystephane00@gmail.com"
+          branch: "master"
