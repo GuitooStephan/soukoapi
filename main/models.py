@@ -270,7 +270,7 @@ class Store(models.Model):
             current_report = self._get_profit_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
             end = datetime.datetime.today()
-            start = end.replace(month=end.month - 1)
+            start = end - timedelta(days=30)
             current_report = self._get_profit_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
             end = datetime.datetime.today()
@@ -283,7 +283,6 @@ class Store(models.Model):
 
     def _get_profit_report( self, start=None, end=None ):
         _filter = None
-
         if start and end:
             _filter = Q(created_at__range=[start, end])
 
@@ -313,7 +312,7 @@ class Store(models.Model):
             current_report = self._get_orders_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
             end = datetime.datetime.today()
-            start = end.replace(month=end.month - 1)
+            start = end - timedelta(days=30)
             current_report = self._get_orders_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
             end = datetime.datetime.today()
@@ -355,7 +354,7 @@ class Store(models.Model):
             current_report = self._get_num_of_orders_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
             end = datetime.datetime.today()
-            start = end.replace(month=end.month - 1)
+            start = end - timedelta(days=30)
             current_report = self._get_num_of_orders_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
             end = datetime.datetime.today()
@@ -405,7 +404,7 @@ class Store(models.Model):
             current_report = self._get_best_selling_product(start=start, end=end)
         elif period == constants.LAST_MONTH:
             end = datetime.datetime.today()
-            start = end.replace(month=end.month - 1)
+            start = end - timedelta(days=30)
             current_report = self._get_best_selling_product(start=start, end=end)
         elif period == constants.LAST_YEAR:
             end = datetime.datetime.today()
