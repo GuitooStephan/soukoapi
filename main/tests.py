@@ -110,17 +110,11 @@ class AuthenticationTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_users_verify_after_signup(self):
-        payload = {
-            'code' : self.code.code
-        }
-
-        response = self.client.post(
-            reverse('users_verify'),
-            data=json.dumps(payload),
+        response = self.client.get(
+            f"{reverse('users_verify')}?code={self.code.code}",
             content_type='application/json'
         )
-        results = json.loads(response.content.decode('utf-8'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
 
     @patch("main.signals.send_email_async.delay")
     def test_reset_password(self, send_email_async):
@@ -150,7 +144,7 @@ class AuthenticationTest(TestCase):
             content_type='application/json'
         )
 
-        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_change_password(self):
         payload = {

@@ -197,6 +197,8 @@ SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
 
+FRONTEND_BASE_URL = os.environ.get( 'FRONTEND_BASE_URL' )
+
 EMAIL_BASE_URL = os.environ.get('EMAIL_BASE_URL')
 
 EMAIL_HOST = "smtp.sendgrid.net"

@@ -11,6 +11,8 @@ from django_rest_passwordreset.signals import (
     post_password_reset
 )
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from django.http.response import HttpResponseRedirect
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, get_user_model
@@ -20,6 +22,7 @@ from django.contrib.auth.password_validation import validate_password, get_passw
 from rest_framework import generics
 from rest_framework.generics import get_object_or_404
 from rest_framework import status, exceptions
+from rest_framework import filters
 from rest_framework.views import APIView, Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -48,7 +51,8 @@ from .serializers import (
     CustomerOrderSerializer,
     ProductStockSerializer,
     StockSerializer,
-    PaymentSerializer
+    PaymentSerializer,
+    ProductCustomerSerializer
 )
 from main.models import (
     VerificationCode,
@@ -83,7 +87,7 @@ class UsersEndpoint(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
         verification_code = VerificationCode.objects.create(email=user.email)
-        confirm_email_url = f"/confirm-email/?code={verification_code.code}"
+        confirm_email_url = f"/users/verify/?code={verification_code.code}"
         send_email_async.delay(
             template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
             tos=[user.email],
@@ -125,10 +129,8 @@ class CustomAuthToken(ObtainAuthToken):
 class UserVerify(generics.GenericAPIView):
     permission_classes = (AllowAny,)
 
-    def post(self, request, *args, **kwargs):
-        serializer = VerificationCodeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data["code"]
+    def get(self, request, *args, **kwargs):
+        code = request.query_params.get("code", None)
         verification_code = get_object_or_404(
             VerificationCode.objects.filter(), code=code
         )
@@ -138,44 +140,7 @@ class UserVerify(generics.GenericAPIView):
             user.is_email_confirmed = True
             user.save(update_fields=["is_email_confirmed"])
         verification_code.delete()
-        return Response({"verified": True})
-
-class CustomResetPasswordConfirm( ResetPasswordConfirm ):
-    permission_classes = ( AllowAny, )
-
-    def post( self, request, *args, **kwargs ):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        password = serializer.validated_data['password']
-        token = serializer.validated_data['token']
-
-        # find token
-        reset_password_token = ResetPasswordToken.objects.filter(key=token).first()
-
-        # change users password (if we got to this code it means that the user is_active)
-        if reset_password_token.user.eligible_for_reset():
-            pre_password_reset.send(sender=self.__class__, user=reset_password_token.user)
-            try:
-                # validate the password against existing validators
-                validate_password(
-                    password,
-                    user=reset_password_token.user,
-                    password_validators=get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
-                )
-            except ValidationError as e:
-                # raise a validation error for the serializer
-                raise exceptions.ValidationError({
-                    'password': e.messages
-                })
-
-            reset_password_token.user.set_password(password)
-            reset_password_token.user.save()
-            post_password_reset.send(sender=self.__class__, user=reset_password_token.user)
-
-        # Delete all password reset tokens for this user
-        ResetPasswordToken.objects.filter(user=reset_password_token.user).delete()
-
-        return HttpResponseRedirect( redirect_to=f"{urljoin( settings.EMAIL_BASE_URL, '/login' )}" )
+        return HttpResponseRedirect( redirect_to=f"{urljoin( settings.FRONTEND_BASE_URL, '/login' )}" )
 
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
@@ -302,6 +267,13 @@ class StoreProductStocksReportEndpoint(generics.GenericAPIView):
 class StoreCustomersEndpoint(generics.ListAPIView):
     serializer_class = StoreCustomerSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        filters.SearchFilter,
+    ]
+    search_fields = [
+        "first_name",
+        "last_name"
+    ]
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
@@ -319,6 +291,15 @@ class StoreProductsEndpoint(generics.ListAPIView):
 class StoreOrdersEndpoint(generics.ListAPIView):
     serializer_class = StoreOrderSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        filters.SearchFilter,
+        DjangoFilterBackend,
+    ]
+    search_fields = [
+        "customer__first_name",
+        "customer__last_name"
+    ]
+    filterset_fields = ["payment_status",]
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
@@ -343,6 +324,13 @@ class CustomerEndpoint(generics.RetrieveUpdateAPIView):
 class CustomerOrdersEndpoint(generics.ListAPIView):
     serializer_class = CustomerOrderSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        filters.SearchFilter,
+    ]
+    search_fields = [
+        "customer__first_name",
+        "customer__last_name"
+    ]
 
     def get_queryset(self):
         customer = get_object_or_404(Customer.objects.filter( pk=self.kwargs["pk"] ))
@@ -352,6 +340,12 @@ class CustomerOrdersEndpoint(generics.ListAPIView):
 class CustomerOrderedProductsEndpoint(generics.ListAPIView):
     serializer_class = StoreProductSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        DjangoFilterBackend,
+    ]
+    search_fields = [
+        "name",
+    ]
 
     def get_queryset(self):
         customer = get_object_or_404(Customer.objects.filter( pk=self.kwargs["pk"] ))
@@ -402,8 +396,14 @@ class ProductProductStocksEndpoint(generics.ListAPIView):
 
 
 class ProductCustomersEndpoint(generics.ListAPIView):
-    serializer_class = CustomerSerializer
+    serializer_class = ProductCustomerSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        filters.SearchFilter,
+    ]
+    search_fields = [
+        "name",
+    ]
 
     def get_queryset(self):
         return Customer.objects.filter( orders__order_items__product__pk=self.kwargs["pk"] )

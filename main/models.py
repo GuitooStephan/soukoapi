@@ -488,7 +488,7 @@ class Product(models.Model):
         stocks = self.stocks.all()
         return reduce( lambda x, y : x + y, [ s.num_of_remaining_items for s in stocks ] )
 
-    def get_number_of_ordered_items_in_period(self, start, end):
+    def get_number_of_ordered_items_in_period(self, start=None, end=None):
         stocks = self.stocks.all()
         return reduce( lambda x, y : x + y, [ s.get_num_of_ordered_items_in_period(start, end) for s in stocks ] )
 
@@ -533,12 +533,19 @@ class ProductStock(models.Model):
     def num_of_remaining_items(self):
         return self.quantity - self.num_of_ordered_items
 
-    def get_num_of_ordered_items_in_period(self, start, end):
-        return (
-            self.order_items.filter( created_at__range=[start, end] ).aggregate(
-                quantity_ordered= Coalesce( Sum( "quantity" ), Value("0") )
-            ).get("quantity_ordered")
-        )
+    def get_num_of_ordered_items_in_period(self, start=None, end=None):
+        if start and end:
+            return (
+                self.order_items.filter( created_at__range=[start, end] ).aggregate(
+                    quantity_ordered= Coalesce( Sum( "quantity" ), Value("0") )
+                ).get("quantity_ordered")
+            )
+        else:
+            return (
+                self.order_items.all().aggregate(
+                    quantity_ordered= Coalesce( Sum( "quantity" ), Value("0") )
+                ).get("quantity_ordered")
+            )
 
 
 class Admin(models.Model):
@@ -681,6 +688,16 @@ class Customer(models.Model):
     def get_ordered_products(self):
         return Product.objects.filter( order_items__order__customer__pk=self.pk )
 
+    def get_number_of_orders_for_product(self, product_id):
+        order_items = OrderItem.objects.filter(
+            order__customer=self,
+            product__pk=product_id
+        )
+        return reduce( lambda x, y : x + y, [ o.quantity for o in order_items ] )
+
+    def get_number_of_orders(self):
+        return self.orders.all().count()
+
 
 class Order(models.Model):
     PAYMENT_STATUS = [
@@ -753,6 +770,13 @@ class Order(models.Model):
     @property
     def profit(self):
         return sum(i.profit for i in self.order_items.all())
+
+    def get_number_of_products(self):
+        return (
+            self.order_items.all().aggregate(
+                num_of_products= Coalesce( Sum( "quantity" ), Value("0") )
+            ).get("num_of_products") 
+        )
 
 
 class OrdersTimestampedMetric(models.Model):

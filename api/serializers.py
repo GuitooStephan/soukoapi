@@ -194,10 +194,33 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ("__all__")
 
 
-class StoreCustomerSerializer(serializers.ModelSerializer):
+class ProductCustomerSerializer(serializers.ModelSerializer):
+    store = StoreSerializer( read_only=True )
+    store_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        source='store',
+        queryset=Store.objects.all()
+    )
+    num_of_orders = serializers.SerializerMethodField()
+
+    def get_num_of_orders(self, obj):
+        return obj.get_number_of_orders_for_product( self.context.get('view').kwargs.get('pk') )
+
     class Meta:
         model = Customer
         fields = ("__all__")
+        read_only_fields = ("num_of_orders",)
+
+
+class StoreCustomerSerializer(serializers.ModelSerializer):
+    number_of_orders = serializers.SerializerMethodField()
+
+    def get_number_of_orders(self, obj):
+        return obj.get_number_of_orders()
+    class Meta:
+        model = Customer
+        fields = ("__all__")
+        read_only_fiels = ( "number_of_orders", )
 
 
 class ProductStockSerializer(serializers.ModelSerializer):
@@ -228,10 +251,19 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     current_stock = ProductStockSerializer( read_only=True )
     stocks = ProductStockSerializer( read_only=True, many=True )
+    total_stock = serializers.SerializerMethodField()
+    num_of_orders =serializers.SerializerMethodField()
+
+    def get_total_stock(self, obj):
+        return obj.get_total_stock()
+
+    def get_num_of_orders(self, obj):
+        return obj.get_number_of_ordered_items_in_period()
 
     class Meta:
         model = Product
         fields = ("__all__")
+        read_only_fields = ("total_stock", "num_of_orders",)
 
 class StockSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(
@@ -254,10 +286,18 @@ class StockSerializer(serializers.ModelSerializer):
 class StoreProductSerializer(serializers.ModelSerializer):
     current_stock = ProductStockSerializer( read_only=True )
     stocks = ProductStockSerializer( read_only=True, many=True )
+    total_stock = serializers.SerializerMethodField()
+    num_of_orders =serializers.SerializerMethodField()
 
+    def get_total_stock(self, obj):
+        return obj.get_total_stock()
+
+    def get_num_of_orders(self, obj):
+        return obj.get_number_of_ordered_items_in_period()
     class Meta:
         model = Product
         fields = ("__all__")
+        read_only_fields = ("total_stock", "num_of_orders")
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = StoreProductSerializer( read_only=True )
@@ -357,6 +397,10 @@ class StoreOrderSerializer(serializers.ModelSerializer):
         queryset=OrderItem.objects.all()
     )
     payments = PaymentSerializer( many=True, read_only=True )
+    number_of_products = serializers.SerializerMethodField()
+
+    def get_number_of_products(self, obj):
+        return obj.get_number_of_products()
 
     class Meta:
         model = Order
@@ -372,7 +416,11 @@ class StoreOrderSerializer(serializers.ModelSerializer):
             "amount_paid",
             "balance",
             "payment_status",
-            "profit"
+            "profit",
+            "number_of_products"
+        )
+        read_only_fields = (
+            "number_of_products",
         )
 
 
@@ -389,7 +437,12 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
         source='order_items',
         queryset=OrderItem.objects.all()
     )
+    number_of_products = serializers.SerializerMethodField()
+
+    def get_number_of_products(self, obj):
+        return obj.get_number_of_products()
 
     class Meta:
         model = Order
         fields = ("__all__")
+        read_only_fields = ( "number_of_products", )
