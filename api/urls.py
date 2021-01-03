@@ -5,6 +5,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.authtoken.views import obtain_auth_token
 from django_rest_passwordreset.views import (
     reset_password_request_token,
+    reset_password_confirm
 )
 
 from rest_framework.schemas import get_schema_view
@@ -16,7 +17,7 @@ urlpatterns = [
     path("users/login/", views.CustomAuthToken.as_view(), name="users_login"),
     path('users/verify/', views.UserVerify.as_view(), name='users_verify'),
     path('reset_password/', reset_password_request_token, name="reset_password_request_token"),
-    path('reset_password/confirm/', views.CustomResetPasswordConfirm.as_view(), name="reset_password_confirm"),
+    path('reset_password/confirm/', reset_password_confirm, name="reset_password_confirm"),
     path('users/me/change-password/', views.ChangePasswordEndpoint.as_view(), name="change_password"),
     path("stores/", views.StoresEndpoint.as_view(), name="stores"),
     path("stores/<uuid:pk>/", views.StoreEndpoint.as_view(), name="store_details"),
