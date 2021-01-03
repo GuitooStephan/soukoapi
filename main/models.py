@@ -486,11 +486,11 @@ class Product(models.Model):
 
     def get_total_stock(self):
         stocks = self.stocks.all()
-        return reduce( lambda x, y : x + y, [ s.num_of_remaining_items for s in stocks ] )
+        return reduce( lambda x, y : x + y, [ s.num_of_remaining_items for s in stocks ], 0 )
 
     def get_number_of_ordered_items_in_period(self, start=None, end=None):
         stocks = self.stocks.all()
-        return reduce( lambda x, y : x + y, [ s.get_num_of_ordered_items_in_period(start, end) for s in stocks ] )
+        return reduce( lambda x, y : x + y, [ s.get_num_of_ordered_items_in_period(start, end) for s in stocks ], 0 )
 
 
 class ProductStock(models.Model):
@@ -693,7 +693,7 @@ class Customer(models.Model):
             order__customer=self,
             product__pk=product_id
         )
-        return reduce( lambda x, y : x + y, [ o.quantity for o in order_items ] )
+        return reduce( lambda x, y : x + y, [ o.quantity for o in order_items ], 0 )
 
     def get_number_of_orders(self):
         return self.orders.all().count()
