@@ -176,29 +176,36 @@ class StoresEndpoint(generics.ListCreateAPIView):
     permission_classes = ( IsAuthenticated, )
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        user_id = data.pop( 'user_id' )
-        admin = Admin.objects.create( **{
-            'role':'OWNER',
-            'user_id':user_id
-        } )
-        
-        data['admins_ids'] = [admin.pk]
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            data = request.data.copy()
+            user_id = data.pop( 'user_id' )
+            admin = Admin.objects.create( **{
+                'role':'OWNER',
+                'user_id':user_id
+            } )
+            
+            data['admins_ids'] = [admin.pk]
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
 
-        user = User.objects.get(pk=user_id)
-        user.is_onboarded = True
-        user.save(update_fields=["is_onboarded"])
+            user = User.objects.get(pk=user_id)
+            user.is_onboarded = True
+            user.save(update_fields=["is_onboarded"])
 
-        store = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+            store = self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED,
-            headers=headers,
-        )
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED,
+                headers=headers,
+            )
+        except Exception as e:
+            return Response(
+                { "error": str(e) },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                headers=headers,
+            )
 
 class StoreEndpoint(generics.RetrieveUpdateAPIView):
     serializer_class = StoreSerializer
