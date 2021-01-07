@@ -19,6 +19,7 @@ urlpatterns = [
     path('reset_password/', reset_password_request_token, name="reset_password_request_token"),
     path('reset_password/confirm/', reset_password_confirm, name="reset_password_confirm"),
     path('users/me/change-password/', views.ChangePasswordEndpoint.as_view(), name="change_password"),
+    path("categories/", views.CategoriesEndpoint.as_view(), name="categories"),
     path("stores/", views.StoresEndpoint.as_view(), name="stores"),
     path("stores/<uuid:pk>/", views.StoreEndpoint.as_view(), name="store_details"),
     path("stores/<uuid:pk>/profit-report/", views.StoreProfitReportEndpoint.as_view(), name="store_profit_report"),

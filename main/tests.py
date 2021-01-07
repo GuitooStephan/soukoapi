@@ -260,6 +260,14 @@ class StoreTest(TestCase):
         results = json.loads(response.content.decode('utf-8'))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+    def test_fetch_categories(self):
+        response = self.client.get(
+            reverse('categories'),
+            content_type='application/json'
+        )
+        results = json.loads(response.content.decode('utf-8'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_fetch_stores(self):
         response = self.client.get(
             reverse('stores'),
