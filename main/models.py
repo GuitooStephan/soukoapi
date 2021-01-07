@@ -131,7 +131,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     def __str__(self):
-        return self.username
+        return self.get_full_name()
 
     def get_full_name(self):
         """Return user's full name."""
