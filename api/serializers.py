@@ -62,6 +62,9 @@ class UserSerializer(serializers.ModelSerializer):
             "password",
             "is_staff",
             "timezone",
+            "is_onboarded",
+            "required_change_password",
+            "is_active",
             "is_superuser",
             "is_email_confirmed",
         )
