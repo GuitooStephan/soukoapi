@@ -52,7 +52,8 @@ from .serializers import (
     ProductStockSerializer,
     StockSerializer,
     PaymentSerializer,
-    ProductCustomerSerializer
+    ProductCustomerSerializer,
+    CategorySerializer
 )
 from main.models import (
     VerificationCode,
@@ -63,7 +64,8 @@ from main.models import (
     Order,
     OrderItem,
     ProductStock,
-    Payment
+    Payment,
+    Category
 )
 
 User = get_user_model()
@@ -162,6 +164,11 @@ class ChangePasswordEndpoint(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
+class CategoriesEndpoint( generics.ListCreateAPIView ):
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+    permission_classes = ( IsAuthenticated, )
 
 class StoresEndpoint(generics.ListCreateAPIView):
     serializer_class = StoreSerializer
