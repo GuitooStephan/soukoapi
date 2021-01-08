@@ -19,7 +19,7 @@ def password_reset_token_created(
     sender, instance, reset_password_token, *args, **kwargs
 ):
     user = reset_password_token.user
-    reset_password_url = f"/reset-password/confirm/?token={reset_password_token.key}&email={reset_password_token.user.email}"
+    reset_password_url = f"/account/auth/forgot-password/reset-password?token={reset_password_token.key}&email={reset_password_token.user.email}"
     emailer = send_email_async.delay(
         template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
         tos=[reset_password_token.user.email],
@@ -28,7 +28,7 @@ def password_reset_token_created(
             'subject': 'Souko - Reset Password',
             'first_name': reset_password_token.user.first_name,
             'message': '''You are about to reset your password. Kindly click on the link below to complete the process''',
-            'url': '{}'.format(urljoin( settings.EMAIL_BASE_URL, reset_password_url ))
+            'url': '{}'.format(urljoin( settings.FRONTEND_BASE_URL, reset_password_url ))
         },
         index=0
     )
