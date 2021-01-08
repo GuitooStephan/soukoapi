@@ -142,7 +142,7 @@ class UserVerify(generics.GenericAPIView):
             user.is_email_confirmed = True
             user.save(update_fields=["is_email_confirmed"])
         verification_code.delete()
-        return HttpResponseRedirect( redirect_to=f"{urljoin( settings.FRONTEND_BASE_URL, '/login' )}" )
+        return HttpResponseRedirect( redirect_to=f"{urljoin( settings.FRONTEND_BASE_URL, '/account/auth/sign-in' )}" )
 
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
