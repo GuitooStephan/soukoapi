@@ -236,11 +236,13 @@ class ProductStockSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductStock
         fields = (
+            "id",
             "product",
             "product_id",
             "quantity",
             "num_of_ordered_items",
-            "num_of_remaining_items"
+            "num_of_remaining_items",
+            "created_at"
         )
         read_only_fields = ( "product", )
 
@@ -372,6 +374,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = (
+            "id",
             "store",
             "store_id",
             "customer",
@@ -383,8 +386,10 @@ class OrderSerializer(serializers.ModelSerializer):
             "amount_paid",
             "balance",
             "payment_status",
-            "profit"
+            "profit",
+            "created_at"
         )
+        read_only_fields = ( 'created_at', )
 
 class StoreOrderSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer( read_only=True )
@@ -408,6 +413,7 @@ class StoreOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = (
+            "id",
             "store",
             "customer",
             "customer_id",

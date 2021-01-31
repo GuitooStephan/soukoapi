@@ -326,18 +326,16 @@ class Store(models.Model):
     def _get_orders_report( self, start=None, end=None ):
         _filter = None
 
+        queries = Q( store=self )
+
         if start and end:
-            _filter = Q(date__range=[start, end])
+            queries &= Q(date__range=[start, end])
 
         metrics = OrdersTimestampedMetric.objects.filter(
-            store=self
+            queries
         ).order_by("date")
 
-        annotations = {
-            "orders": Sum("orders", filter=_filter)
-        }
-
-        return metrics.values("date").annotate(**annotations)
+        return metrics.values("date", "orders")
 
     def get_num_of_orders_report_by_period( self, period=None ):
         if period not in [
@@ -366,14 +364,14 @@ class Store(models.Model):
         return current_report
 
     def _get_num_of_orders_report( self, start=None, end=None ):
-        _filter = None
+
+        queries = Q( store=self )
 
         if start and end:
-            _filter = Q(date__range=[start, end])
+            queries &= Q(created_at__range=[start, end])
 
         metrics = Order.objects.filter(
-            store=self,
-            created_at__range=[start, end]
+            queries
         ).order_by("created_at")
 
         return { 'number_of_orders': metrics.count() }
@@ -384,7 +382,7 @@ class Store(models.Model):
         ).order_by("created_at")
 
         stocks = map( lambda x: { 'id': x.id, "stock": x.get_total_stock() }, products )
-        low_stock_products_list = filter( lambda x: x["stock"] < 3, stocks )
+        low_stock_products_list = filter( lambda x: x["stock"] < 3, list(stocks) )
         low_stock_products = Product.objects.filter( pk__in=[ s["id"] for s in list(low_stock_products_list) ] )
 
         return low_stock_products
@@ -417,15 +415,15 @@ class Store(models.Model):
 
     def _get_best_selling_product( self, start, end ):
         products = Product.objects.filter(
-            store=self,
-            created_at__range=[start, end]
+            store=self
         ).order_by("created_at")
 
-        metrics = map( lambda x: { 'id': x.id, "num_bought": x.get_number_of_ordered_items_in_period(start, end) }, products )
-        _best_selling_product = pydash.max_by(list(metrics), "num_bought")
-        product = Product.objects.get( pk=_best_selling_product["id"] )
-
-        return product
+        metrics = list( map( lambda x: { 'id': x.id, "num_bought": x.get_number_of_ordered_items_in_period(start, end) }, products ) )
+        if len(metrics):
+            _best_selling_product = pydash.max_by(list(metrics), "num_bought")
+            product = Product.objects.get( pk=_best_selling_product["id"] )
+            return product
+        return None
 
 
 class Product(models.Model):
@@ -639,6 +637,8 @@ class Customer(models.Model):
         blank=True
     )
 
+    phone_number = PhoneNumberField(null=True, blank=True)
+
     city = models.CharField(
         verbose_name='City',
         max_length=255,
@@ -801,10 +801,6 @@ class OrdersTimestampedMetric(models.Model):
 
     def __str__(self):
         return f"Metric: {self.date}, {self.store}"
-
-    def update(self, orders=0):
-        self.orders += orders
-        self.save(update_fields=["orders"])
 
 
 class StorePeriodicTaskManager(PeriodicTaskManager):
