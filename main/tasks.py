@@ -30,9 +30,12 @@ def send_email_async(
 def create_store_orders_metrics(self, store_id):
     try:
         store = models.Store.objects.get(pk=store_id)
+        today = dj_timezone.now().date()
         timestamped_metric, _ = models.OrdersTimestampedMetric.objects.get_or_create(
-            date=dj_timezone.now().date(), store=store, orders=store.orders.count()
+            date=today, store=store
         )
+        timestamped_metric.orders = store.orders.filter(created_at__year=today.year, created_at__month=today.month, created_at__day=today.day).count()
+        timestamped_metric.save()
     except ObjectDoesNotExist:
         pass
     except Exception as e:

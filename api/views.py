@@ -146,6 +146,7 @@ class UserVerify(generics.GenericAPIView):
 
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
+    permission_classes = ( IsAuthenticated, )
 
     def post(self, request, *args, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
@@ -272,8 +273,7 @@ class StoreProductStocksReportEndpoint(generics.GenericAPIView):
             period = int(request.query_params.get("period", 3))
             best_selling_report = store.get_best_selling_product_by_period( period=period )
             best_selling_serializer = ProductSerializer( best_selling_report )
-
-            return Response({'low_products':low_products_serializer.data, 'best_selling_products':best_selling_serializer.data})
+            return Response({'low_products':low_products_serializer.data, 'best_selling_products':best_selling_serializer.data if best_selling_report else None})
         except Exception as e:
             return Response( {"message": str(e)}, status=status.HTTP_400_BAD_REQUEST )
 
@@ -296,6 +296,12 @@ class StoreCustomersEndpoint(generics.ListAPIView):
 class StoreProductsEndpoint(generics.ListAPIView):
     serializer_class = StoreProductSerializer
     permission_classes = ( IsAuthenticated, )
+    filter_backends = [
+        filters.SearchFilter,
+    ]
+    search_fields = [
+        "name"
+    ]
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
@@ -340,11 +346,13 @@ class CustomerOrdersEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        DjangoFilterBackend,
     ]
     search_fields = [
         "customer__first_name",
         "customer__last_name"
     ]
+    filterset_fields = ["payment_status",]
 
     def get_queryset(self):
         customer = get_object_or_404(Customer.objects.filter( pk=self.kwargs["pk"] ))
@@ -416,7 +424,9 @@ class ProductCustomersEndpoint(generics.ListAPIView):
         filters.SearchFilter,
     ]
     search_fields = [
-        "name",
+        "first_name",
+        "last_name",
+        "city"
     ]
 
     def get_queryset(self):
