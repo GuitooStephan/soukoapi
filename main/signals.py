@@ -38,3 +38,4 @@ def password_reset_token_created(
 def store_created( sender, instance, created, **kwargs ):
     if created:
         StorePeriodicTask.objects.schedule_create_store_orders_metrics( instance )
+        StorePeriodicTask.objects.schedule_create_store_profit_metrics( instance )

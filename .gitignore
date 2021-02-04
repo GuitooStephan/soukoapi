@@ -90,3 +90,7 @@ staticfiles
 .vscode
 
 terraform/secrets.tfvars
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

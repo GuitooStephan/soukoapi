@@ -13,6 +13,7 @@ models = [
     Customer,
     Order,
     OrdersTimestampedMetric,
+    ProfitTimestampedMetric,
     StorePeriodicTask,
     OrderItem,
     Payment

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import pytz
 import uuid
 import json
 import pydash
@@ -11,6 +12,7 @@ from django_celery_beat.models import PeriodicTask, CrontabSchedule
 from django_celery_beat.managers import PeriodicTaskManager
 
 from django.db import models
+from django.utils import timezone as dj_timezone
 from django.contrib.auth.models import BaseUserManager, AbstractUser
 from django.db.models import (
     Q,
@@ -255,6 +257,47 @@ class Store(models.Model):
         ordering = ('name',)
         verbose_name_plural = 'stores'
 
+    def get_profit_by_period( self, period=None ):
+        if period not in [
+            constants.LAST_WEEK,
+            constants.LAST_MONTH,
+            constants.LAST_YEAR,
+            constants.ALL_TIME
+        ]:
+            raise Exception( "Time paramters must be 0 (for last week)) or 1 (for last month) or 2 (for last year) or 3 (for all time)" )
+        
+        if period == constants.LAST_WEEK:
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
+            start = end - timedelta(days=7)
+            current_report = self._get_profit(start=start, end=end)
+        elif period == constants.LAST_MONTH:
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
+            start = end - timedelta(days=30)
+            current_report = self._get_profit(start=start, end=end)
+        elif period == constants.LAST_YEAR:
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
+            start = end.replace(year=end.year - 1)
+            current_report = self._get_profit(start=start, end=end)
+        else:
+            current_report = self._get_profit()
+
+        return current_report
+
+    def _get_profit( self, start=None, end=None ):
+        _filter = None
+        if start and end:
+            _filter = Q(paid_on__range=[start, end])
+
+        orders = Order.objects.filter(
+            store=self
+        ).order_by("created_at") if not _filter else Order.objects.filter(
+            _filter,
+            store=self
+        ).order_by("created_at")
+
+        return sum(o.profit for o in orders)
+
+
     def get_profit_report_by_period( self, period=None ):
         if period not in [
             constants.LAST_WEEK,
@@ -265,15 +308,15 @@ class Store(models.Model):
             raise Exception( "Time paramters must be 0 (for last week)) or 1 (for last month) or 2 (for last year) or 3 (for all time)" )
         
         if period == constants.LAST_WEEK:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=7)
             current_report = self._get_profit_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=30)
             current_report = self._get_profit_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end.replace(year=end.year - 1)
             current_report = self._get_profit_report(start=start, end=end)
         else:
@@ -281,21 +324,21 @@ class Store(models.Model):
 
         return current_report
 
+
     def _get_profit_report( self, start=None, end=None ):
         _filter = None
+
+        queries = Q( store=self )
+
         if start and end:
-            _filter = Q(created_at__range=[start, end])
+            queries &= Q(date__range=[start, end])
 
-        orders = Order.objects.filter(
-            store=self,
-            payment_status='PAID'
-        ).order_by("created_at") if not _filter else Order.objects.filter(
-            _filter,
-            store=self,
-            payment_status='PAID'
-        ).order_by("created_at")
+        metrics = ProfitTimestampedMetric.objects.filter(
+            queries
+        ).order_by("date")
 
-        return { "profit": sum(o.profit for o in orders) }
+        return metrics.values("date", "profit")
+
 
     def get_orders_report_by_period( self, period=None ):
         if period not in [
@@ -307,15 +350,15 @@ class Store(models.Model):
             raise Exception( "Time paramters must be 0 (for last week)) or 1 (for last month) or 2 (for last year) or 3 (for all time)" )
         
         if period == constants.LAST_WEEK:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=7)
             current_report = self._get_orders_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=30)
             current_report = self._get_orders_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end.replace(year=end.year - 1)
             current_report = self._get_orders_report(start=start, end=end)
         else:
@@ -347,15 +390,15 @@ class Store(models.Model):
             raise Exception( "Time paramters must be 0 (for last week)) or 1 (for last month) or 2 (for last year) or 3 (for all time)" )
         
         if period == constants.LAST_WEEK:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=7)
             current_report = self._get_num_of_orders_report(start=start, end=end)
         elif period == constants.LAST_MONTH:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=30)
             current_report = self._get_num_of_orders_report(start=start, end=end)
         elif period == constants.LAST_YEAR:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end.replace(year=end.year - 1)
             current_report = self._get_num_of_orders_report(start=start, end=end)
         else:
@@ -370,11 +413,21 @@ class Store(models.Model):
         if start and end:
             queries &= Q(created_at__range=[start, end])
 
-        metrics = Order.objects.filter(
+        all_orders = Order.objects.filter(
             queries
         ).order_by("created_at")
 
-        return { 'number_of_orders': metrics.count() }
+        pending_orders = Order.objects.filter(
+            queries,
+            payment_status="PENDING"
+        ).order_by("created_at")
+
+        paid_orders = Order.objects.filter(
+            queries,
+            payment_status="PAID"
+        ).order_by("created_at")
+
+        return { 'number_of_orders': all_orders.count(), 'number_of_pending_orders': pending_orders.count(), 'number_of_paid_orders': paid_orders.count() }
 
     def get_low_products_stock( self ):
         products = Product.objects.filter(
@@ -397,15 +450,15 @@ class Store(models.Model):
             raise Exception( "Time paramters must be 0 (for last week)) or 1 (for last month) or 2 (for last year) or 3 (for all time)" )
         
         if period == constants.LAST_WEEK:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=7)
             current_report = self._get_best_selling_product(start=start, end=end)
         elif period == constants.LAST_MONTH:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end - timedelta(days=30)
             current_report = self._get_best_selling_product(start=start, end=end)
         elif period == constants.LAST_YEAR:
-            end = datetime.datetime.today()
+            end = datetime.datetime.today().replace(tzinfo=pytz.utc)
             start = end.replace(year=end.year - 1)
             current_report = self._get_best_selling_product(start=start, end=end)
         else:
@@ -701,6 +754,7 @@ class Customer(models.Model):
 class Order(models.Model):
     PAYMENT_STATUS = [
         ('PENDING', 'Pending'),
+        ('PARTIALLY_PAID', 'Partially Paid'),
         ('PAID', 'Paid')
     ]
 
@@ -731,6 +785,8 @@ class Order(models.Model):
         blank=True,
         null=True
     )
+
+    paid_on = models.DateField( null=True, blank=True )
 
     delivery_fee = models.FloatField(blank=True, null=True, default=0.0)
 
@@ -806,7 +862,7 @@ class OrdersTimestampedMetric(models.Model):
 class StorePeriodicTaskManager(PeriodicTaskManager):
     def schedule_create_store_orders_metrics(self, store):
         schedule = CrontabSchedule.objects.create(
-            minute="*/10",
+            minute="*/5",
             hour="*",
             day_of_week="*",
             day_of_month="*",
@@ -822,6 +878,24 @@ class StorePeriodicTaskManager(PeriodicTaskManager):
         )
         return obj
 
+    def schedule_create_store_profit_metrics(self, store):
+        schedule = CrontabSchedule.objects.create(
+            minute="*/5",
+            hour="*",
+            day_of_week="*",
+            day_of_month="*",
+            month_of_year="*"
+        )
+        obj, created = self.get_or_create(
+            store=store,
+            crontab=schedule,
+            name=f"Create store={store.id} profit report",
+            task="main.tasks.create_store_profit_metrics",
+            args=json.dumps([str(store.id)]),
+            enabled=True,
+        )
+        return obj
+
 
 class StorePeriodicTask(PeriodicTask):
     store = models.ForeignKey(
@@ -829,6 +903,31 @@ class StorePeriodicTask(PeriodicTask):
     )
 
     objects: StorePeriodicTaskManager = StorePeriodicTaskManager()
+
+
+class ProfitTimestampedMetric(models.Model):
+    id = models.UUIDField(
+        verbose_name='Profit Metrics Id',
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='profit_metrics'
+    )
+
+    profit = models.FloatField(blank=True, null=True, default=0.0)
+
+    date = models.DateField()
+
+    class Meta:
+        ordering = ('id',)
+
+    def __str__(self):
+        return f"Metric: {self.date}, {self.store}"
 
 class OrderItem(models.Model):
     id = models.UUIDField(
@@ -918,6 +1017,11 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if self.order.balance <= float( 0 ):
+            today = dj_timezone.now().date()
             self.order.payment_status = 'PAID'
+            self.order.paid_on = today
+            self.order.save()
+        if self.order.balance > float( 0 ):
+            self.order.payment_status = 'PARTIALLY_PAID'
             self.order.save()
 
