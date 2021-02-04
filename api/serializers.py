@@ -370,6 +370,7 @@ class OrderSerializer(serializers.ModelSerializer):
     order_items = OrderItemSerializer( many=True, read_only=True )
     total_amount = serializers.FloatField( read_only=True )
     payments = PaymentSerializer( many=True, read_only=True )
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -387,9 +388,13 @@ class OrderSerializer(serializers.ModelSerializer):
             "balance",
             "payment_status",
             "profit",
+            "paid_on",
             "created_at"
         )
-        read_only_fields = ( 'created_at', )
+        read_only_fields = ( 'created_at', "payment_status" )
+
+    def get_payment_status(self, obj):
+        return obj.get_payment_status_display()
 
 class StoreOrderSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer( read_only=True )
@@ -406,9 +411,13 @@ class StoreOrderSerializer(serializers.ModelSerializer):
     )
     payments = PaymentSerializer( many=True, read_only=True )
     number_of_products = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
 
     def get_number_of_products(self, obj):
         return obj.get_number_of_products()
+
+    def get_payment_status(self, obj):
+        return obj.get_payment_status_display()
 
     class Meta:
         model = Order
@@ -426,10 +435,11 @@ class StoreOrderSerializer(serializers.ModelSerializer):
             "balance",
             "payment_status",
             "profit",
-            "number_of_products"
+            "number_of_products",
+            "paid_on"
         )
         read_only_fields = (
-            "number_of_products",
+            "number_of_products", "payment_status"
         )
 
 

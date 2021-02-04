@@ -25,7 +25,8 @@ app.conf.update(
     ),
     CELERY_ROUTES={
         "main.tasks.send_email_async": {"queue": "send_email"},
-        "main.tasks.create_store_orders_metrics": {"queue": "fetch_reports"}
+        "main.tasks.create_store_orders_metrics": {"queue": "fetch_reports"},
+        "main.tasks.create_store_profit_metrics": {"queue": "fetch_reports"}
     },
 )
 app.conf.broker_transport_options = {"queue_order_strategy": "priority"}

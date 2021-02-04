@@ -204,8 +204,7 @@ class StoresEndpoint(generics.ListCreateAPIView):
         except Exception as e:
             return Response(
                 { "error": str(e) },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                headers=headers,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class StoreEndpoint(generics.RetrieveUpdateAPIView):
@@ -235,8 +234,9 @@ class StoreProfitReportEndpoint(generics.GenericAPIView):
         try:
             store = get_object_or_404(Store, pk=self.kwargs["pk"])
             period = int(request.query_params.get("period", 3))
-            report = store.get_profit_report_by_period(period=period)
-            return Response(report)
+            profit_per_period = store.get_profit_by_period(period=period)
+            profit_report_per_period = store.get_profit_report_by_period(period=period)
+            return Response({ "profit": profit_per_period, "profit_report": profit_report_per_period })
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -283,7 +283,10 @@ class StoreCustomersEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter,
     ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
     search_fields = [
         "first_name",
         "last_name"
@@ -298,7 +301,10 @@ class StoreProductsEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter,
     ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
     search_fields = [
         "name"
     ]
@@ -313,8 +319,11 @@ class StoreOrdersEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter,
         DjangoFilterBackend,
     ]
+    ordering_fields = ["created_at", "payment_status"]
+    ordering = ["-created_at"]
     search_fields = [
         "customer__first_name",
         "customer__last_name"
@@ -346,8 +355,11 @@ class CustomerOrdersEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter,
         DjangoFilterBackend,
     ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
     search_fields = [
         "customer__first_name",
         "customer__last_name"
@@ -364,7 +376,10 @@ class CustomerOrderedProductsEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         DjangoFilterBackend,
+        filters.OrderingFilter
     ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
     search_fields = [
         "name",
     ]
@@ -422,7 +437,10 @@ class ProductCustomersEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter
     ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
     search_fields = [
         "first_name",
         "last_name",

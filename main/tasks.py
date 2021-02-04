@@ -42,3 +42,20 @@ def create_store_orders_metrics(self, store_id):
         print( str(e) )
 
 
+@shared_task(bind=True)
+def create_store_profit_metrics(self, store_id):
+    try:
+        store = models.Store.objects.get(pk=store_id)
+        today = dj_timezone.now().date()
+        timestamped_metric, _ = models.ProfitTimestampedMetric.objects.get_or_create(
+            date=today, store=store
+        )
+        orders = store.orders.filter(paid_on__year=today.year, paid_on__month=today.month, paid_on__day=today.day)
+        timestamped_metric.profit = float( sum(o.profit for o in orders) )
+        timestamped_metric.save()
+    except ObjectDoesNotExist:
+        pass
+    except Exception as e:
+        print( str(e) )
+
+
