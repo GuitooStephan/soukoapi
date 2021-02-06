@@ -100,7 +100,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'django_countries',
     'django.contrib.staticfiles',
-    'django.contrib.sites'
+    'django.contrib.sites',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [

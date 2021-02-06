@@ -4,8 +4,11 @@ services:
   db:
     restart: always
     image: postgres:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
     ports:
-      - "5432"
+      - "5432:5432"
     environment:
       POSTGRES_DB: souko
       POSTGRES_HOST_AUTH_METHOD: trust
@@ -17,14 +20,15 @@ services:
 
   web:
     build: .
-    command: python3 manage.py runserver 0.0.0.0:1700
+    command: bash -c " ./manage.py migrate --noinput && ./manage.py runserver_plus --print-sql 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
-      - "1700:1700"
+      - "8000:8000"
     env_file: .env
     links:
       - db
+      - redis
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -56,3 +60,5 @@ services:
       - web
       - redis
       - db
+volumes:
+  postgres_data:
