@@ -55,34 +55,6 @@ killasgroup=true
 ; so it starts first
 priority=1000
 
-environment=$celeryenv
-
-[program:daphne]
-; Set full path to celery program if using virtualenv
-command=/opt/python/run/venv/bin/daphne -b :: -p 5000 soukoapi.asgi:application
-
-directory=/opt/python/current/app
-user=nobody
-numprocs=1
-stdout_logfile=/var/log/daphne.log
-stderr_logfile=/var/log/daphne.log
-autostart=true
-autorestart=true
-startsecs=10
-
-; Need to wait for currently executing tasks to finish at shutdown.
-; Increase this if you have very long running tasks.
-stopwaitsecs = 600
-
-; When resorting to send SIGKILL to the program to terminate it
-; send SIGKILL to its whole process group instead,
-; taking care of its children as well.
-killasgroup=true
-
-; if rabbitmq is supervised, set its priority higher
-; so it starts first
-priority=998
-
 environment=$celeryenv"
 
 # Create the celery supervisord conf script
@@ -104,4 +76,3 @@ fi
 # Start/Restart celeryd through supervisord
 /usr/local/bin/supervisorctl -c /opt/python/etc/supervisord.conf restart celeryd-beat
 /usr/local/bin/supervisorctl -c /opt/python/etc/supervisord.conf restart celeryd-worker
-/usr/local/bin/supervisorctl -c /opt/python/etc/supervisord.conf restart daphne
