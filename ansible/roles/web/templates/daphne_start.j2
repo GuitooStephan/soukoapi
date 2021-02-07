@@ -1,0 +1,22 @@
+#!/bin/sh
+
+NAME="{{ application_name }}"
+DJANGODIR="{{ project_path }}"
+SOCKFILE={{ virtualenv_path }}/run/daphne%(process_num)d.sock
+
+echo "Starting $NAME as `whoami`"
+
+# Activate the virtual environment.
+cd $DJANGODIR
+. {{ virtualenv_path }}/bin/activate
+
+# Set additional environment variables.
+. {{ virtualenv_path }}/bin/postactivate
+
+# Create the run directory if it doesn't exist.
+RUNDIR=$(dirname $SOCKFILE)
+test -d $RUNDIR || mkdir -p $RUNDIR
+
+# Programs meant to be run under supervisor should not daemonize themselves
+# (do not use --daemon).
+exec daphne -u $SOCKFILE --fd 0 --access-log - --proxy-headers {{ application_name }}.asgi:application

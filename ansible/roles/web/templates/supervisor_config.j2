@@ -1,0 +1,19 @@
+[program:{{ application_name }}]
+command = {{ virtualenv_path }}/bin/gunicorn_start
+user = {{ gunicorn_user }}
+stdout_logfile = {{ application_log_file }}
+redirect_stderr = true
+
+[fcgi-program:asgi]
+# TCP socket used by Nginx backend upstream
+socket=tcp://localhost:8001
+environment=
+	DJANGO_SECRET_KEY="{{ django_secret_key }}",REDIS_HOST="{{ redis_host }}",REDIS_PORT="{{ redis_port }}",REDIS_URL="{{redis_url}}",DATABASE_NAME="{{ db_name }}", DATABASE_USER="{{ db_name }}",DATABASE_PASSWORD="{{ db_password }}",DATABASE_HOST=localhost,DATABASE_PORT=5432,AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}",AWS_SECRET_ACCESS_KEY="{{ aws_secret_access_key }}",AWS_STORAGE_BUCKET_NAME="{{ aws_storage_bukcet_name }}",AWS_DEFAULT_ACL="{{ aws_default_acl }}",AWS_S3_REGION_NAME="{{ aws_region }}",AWS_S3_CUSTOM_DOMAIN="{{ aws_s3_custom_domain }}"
+directory={{ project_path }}
+command={{ virtualenv_path }}/bin/daphne -u {{ virtualenv_path }}/run/daphne/daphne%(process_num)d.sock --fd 0 --access-log - --proxy-headers {{ application_name }}.asgi:application
+numprocs=4
+process_name=asgi%(process_num)d
+autostart=true
+autorestart=true
+stdout_logfile = {{ daphne_log_file }}
+redirect_stderr=true
