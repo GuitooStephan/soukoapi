@@ -12,8 +12,10 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 from datetime import timedelta
-import django_heroku
 import dj_database_url
+
+def get_secret(name, default=None):
+    return os.environ.get(name, default)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -100,7 +102,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'django_countries',
     'django.contrib.staticfiles',
-    'django.contrib.sites'
+    'django.contrib.sites',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
@@ -148,7 +151,14 @@ WSGI_APPLICATION = 'soukoapi.wsgi.application'
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": get_secret("DATABASE_NAME"),
+        "USER": get_secret("DATABASE_USER"),
+        "PASSWORD": get_secret("DATABASE_PASSWORD"),
+        "HOST": get_secret("DATABASE_HOST"),
+        "PORT": get_secret("DATABASE_PORT"),
+    }
 }
 
 
@@ -233,5 +243,3 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-
-django_heroku.settings(locals(), databases=False, allowed_hosts=False, secret_key=False, test_runner=False)

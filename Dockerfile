@@ -15,6 +15,4 @@ RUN pip install -r requirements.txt
 # Copy the current directory contents into the container at /app
 ADD . /app/
 
-EXPOSE 1700 1700
-
-ENTRYPOINT ["/app/run_server.sh"]
+EXPOSE 8000
