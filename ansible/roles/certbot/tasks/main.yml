@@ -1,7 +1,30 @@
 ---
 
-- name: Download certbot
-  get_url: url=https://gist.githubusercontent.com/akornor/23ba48a628f57fd4a8f7f63badd1ba76/raw/de9787a06110c13a79f4ebf4237abf13fd342e2b/certbot-auto dest={{ certbot_script }} mode=0755
+- name: Install from apt
+  apt:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - certbot
+      - snapd
+
+- name: "Install snap core"
+  snap:
+    name:
+      - core
+
+- name: "Install snap certbot"
+  snap:
+    name: certbot
+    classic: yes
+
+
+- name: "Create link"
+  file:
+    path=/usr/bin/certbot
+    src=/snap/bin/certbot
+    state=link
 
 - name: Check if Nginx exists
   stat: path=/etc/init.d/nginx
@@ -12,7 +35,7 @@
   when: nginx_status.stat.exists
 
 - name: Install certbot and generate cert
-  command: "{{ certbot_script }} certonly --noninteractive --agree-tos --standalone --email {{ certbot_admin_email }} -d {{ inventory_hostname }}"
+  command: "{{ certbot_script }} certonly --standalone --noninteractive --agree-tos --email {{ certbot_admin_email }} -d {{ inventory_hostname }}"
   args:
     creates: "{{ certbot_output_dir }}"
 

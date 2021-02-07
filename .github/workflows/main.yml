@@ -30,9 +30,9 @@ jobs:
           # Opens tcp port 6379 on the host and service container
           - 5432
         env:
-          - POSTGRES_PASSWORD=souko
-          - POSTGRES_USER=souko
-          - POSTGRES_DB=souko
+          POSTGRES_PASSWORD: souko
+          POSTGRES_USER: souko
+          POSTGRES_DB: souko
 
     env:
       DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
