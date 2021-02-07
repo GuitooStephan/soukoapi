@@ -61,7 +61,7 @@ CORS_ALLOW_METHODS = (
 ADMIN_SITE_HEADER = "SOUKO DASHBOARD"
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', None)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', None)
 
 ALLOWED_HOSTS = [
     'localhost'
