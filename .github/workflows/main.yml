@@ -30,12 +30,18 @@ jobs:
           # Opens tcp port 6379 on the host and service container
           - 5432
         env:
-          POSTGRES_DB: souko
-          POSTGRES_HOST_AUTH_METHOD: trust
+          - POSTGRES_PASSWORD=souko
+          - POSTGRES_USER=souko
+          - POSTGRES_DB=souko
 
     env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_USER: ${{ secrets.DATABASE_USER }}
+      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+      DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
       SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
       EMAIL_BASE_URL: ${{ secrets.EMAIL_BASE_URL }}
