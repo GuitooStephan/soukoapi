@@ -89,7 +89,7 @@ class UsersEndpoint(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
         verification_code = VerificationCode.objects.create(email=user.email)
-        confirm_email_url = f"/users/verify/?code={verification_code.code}"
+        confirm_email_url = f"users/verify/?code={verification_code.code}"
         send_email_async.delay(
             template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
             tos=[user.email],
@@ -98,7 +98,7 @@ class UsersEndpoint(generics.ListCreateAPIView):
                 'subject': 'Souko - Account Confirmation Email',
                 'first_name': user.first_name,
                 'message': '''We are so happy to have you as a user on our platform, kindly click on the url below to confirm your account''',
-                'url': '{}'.format(urljoin( settings.EMAIL_BASE_URL, confirm_email_url ))
+                'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
             },
             index=0
         )
@@ -142,7 +142,7 @@ class UserVerify(generics.GenericAPIView):
             user.is_email_confirmed = True
             user.save(update_fields=["is_email_confirmed"])
         verification_code.delete()
-        return HttpResponseRedirect( redirect_to=f"{urljoin( settings.FRONTEND_BASE_URL, '/account/auth/sign-in' )}" )
+        return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}{'account/auth/sign-in'}" )
 
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
