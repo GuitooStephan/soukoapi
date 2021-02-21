@@ -133,7 +133,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     def __str__(self):
-        return self.get_full_name()
+        return f"{ self.first_name } { self.last_name }"
 
     def get_full_name(self):
         """Return user's full name."""
@@ -166,6 +166,9 @@ class VerificationCode(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
+
+    def __str__(self):
+        return f"Verification Code for { self.email }"
 
 
 class Category(models.Model):
@@ -478,6 +481,9 @@ class Store(models.Model):
             return product
         return None
 
+    def __str__(self):
+        return f"{ self.name }"
+
 
 class Product(models.Model):
     id = models.UUIDField(
@@ -542,6 +548,9 @@ class Product(models.Model):
         stocks = self.stocks.all()
         return reduce( lambda x, y : x + y, [ s.get_num_of_ordered_items_in_period(start, end) for s in stocks ], 0 )
 
+    def __str__(self):
+        return f"Product { self.name } from { self.store.name }"
+
 
 class ProductStock(models.Model):
     id = models.UUIDField(
@@ -597,6 +606,9 @@ class ProductStock(models.Model):
                 ).get("quantity_ordered")
             )
 
+    def __str__(self):
+        return f"Product Stock for Product { self.product.name }"
+
 
 class Admin(models.Model):
     ROLES = [
@@ -644,6 +656,9 @@ class Admin(models.Model):
     class Meta:
         ordering = ('created_at',)
         verbose_name_plural = 'admins'
+
+    # def __str__(self):
+    #     return f"{self.store.name} admin - {self.user.first_name} {self.user.last_name}"
 
 
 class Customer(models.Model):
@@ -750,6 +765,9 @@ class Customer(models.Model):
     def get_number_of_orders(self):
         return self.orders.all().count()
 
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
 
 class Order(models.Model):
     PAYMENT_STATUS = [
@@ -833,6 +851,9 @@ class Order(models.Model):
             ).get("num_of_products") 
         )
 
+    def __str__(self):
+        return f"Order from {self.store.name} by {self.customer.first_name} {self.customer.last_name}"
+
 
 class OrdersTimestampedMetric(models.Model):
     id = models.UUIDField(
@@ -856,7 +877,7 @@ class OrdersTimestampedMetric(models.Model):
         ordering = ('id',)
 
     def __str__(self):
-        return f"Metric: {self.date}, {self.store}"
+        return f"Metric: {self.date}, {self.store.pk}"
 
 
 class StorePeriodicTaskManager(PeriodicTaskManager):
@@ -927,7 +948,7 @@ class ProfitTimestampedMetric(models.Model):
         ordering = ('id',)
 
     def __str__(self):
-        return f"Metric: {self.date}, {self.store}"
+        return f"Metric: {self.date}, {self.store.pk}"
 
 class OrderItem(models.Model):
     id = models.UUIDField(
@@ -985,6 +1006,9 @@ class OrderItem(models.Model):
             self.cost = self.quantity * self.product.selling_price
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"Order Item of Order {self.order.pk} of {self.product.name}"
+
 
 class Payment(models.Model):
     id = models.UUIDField(
@@ -1024,4 +1048,7 @@ class Payment(models.Model):
         if self.order.balance > float( 0 ):
             self.order.payment_status = 'PARTIALLY_PAID'
             self.order.save()
+
+    def __str__(self):
+        return f"Payment of { self.order.pk } of {self.amount}"
 
