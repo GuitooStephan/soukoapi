@@ -448,7 +448,7 @@ class ProductCustomersEndpoint(generics.ListAPIView):
     ]
 
     def get_queryset(self):
-        return Customer.objects.filter( orders__order_items__product__pk=self.kwargs["pk"] )
+        return Customer.objects.filter( orders__order_items__product__pk=self.kwargs["pk"] ).distinct()
 
 
 class ProductStocksEndpoint(generics.ListCreateAPIView):
