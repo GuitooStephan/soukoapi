@@ -132,17 +132,18 @@ class UserVerify(generics.GenericAPIView):
     permission_classes = (AllowAny,)
 
     def get(self, request, *args, **kwargs):
-        code = request.query_params.get("code", None)
-        verification_code = get_object_or_404(
-            VerificationCode.objects.filter(), code=code
-        )
+        try:
+            code = request.query_params.get("code", None)
+            verification_code = VerificationCode.objects.get( code=code )
 
-        user = get_object_or_404(User, email=verification_code.email)
-        if not user.is_email_confirmed:
-            user.is_email_confirmed = True
-            user.save(update_fields=["is_email_confirmed"])
-        verification_code.delete()
-        return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}{'account/auth/sign-in'}" )
+            user = get_object_or_404(User, email=verification_code.email)
+            if not user.is_email_confirmed:
+                user.is_email_confirmed = True
+                user.save(update_fields=["is_email_confirmed"])
+            verification_code.delete()
+            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}{'account/auth/sign-in'}" )
+        except VerificationCode.DoesNotExist:
+            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}{'account/auth/sign-in'}" )
 
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
