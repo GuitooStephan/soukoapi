@@ -562,7 +562,7 @@ class ProductTest(TestCase):
         payload = {
             'store_id': str(self.store_two.pk),
             'name': 'Gucci Bags',
-            'quantity': 9,
+            'quantity': ['9'],
             'buying_price': 150.0,
             'selling_price': 250.0
         }
