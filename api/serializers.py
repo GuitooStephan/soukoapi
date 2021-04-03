@@ -155,6 +155,7 @@ class StoreSerializer( serializers.ModelSerializer ):
         write_only=True,
         source="admins",
         many=True,
+        required=False,
         queryset=Admin.objects.all()
     )
     compressed_logo_url = serializers.SerializerMethodField( read_only=True )

@@ -1089,7 +1089,9 @@ class AnonymousOrderTest(TestCase):
 
         self.client = APIClient()
 
-    def test_place_order(self):
+    @patch("api.views.send_email_async.delay")
+    def test_place_order(self, send_email_async):
+        send_email_async.return_value = Mock()
         payload = {
             'order': {
                 'store_id': str(self.store.pk),
@@ -1114,7 +1116,9 @@ class AnonymousOrderTest(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_confirm_order(self):
+    @patch("api.views.send_email_async.delay")
+    def test_confirm_order(self, send_email_async):
+        send_email_async.return_value = Mock()
         url = reverse('customers_confirm_order', kwargs={'pk': self.store.pk})
         response = self.client.get(
             f"{url}?code={self.code.code}",
