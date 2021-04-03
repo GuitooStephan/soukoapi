@@ -182,6 +182,11 @@ class StoresEndpoint(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         data = request.data
+
+        categories_ids = data.pop('categories_ids')[0]
+        categories_ids = categories_ids.split(',')
+        categories = Category.objects.filter( pk__in=categories_ids )
+
         admin, _ = Admin.objects.get_or_create( **{
             'role':'OWNER',
             'user_id':request.user.id
@@ -189,7 +194,7 @@ class StoresEndpoint(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save( admins=[admin] )
+        serializer.save( admins=[admin], categories=categories )
 
         user = User.objects.get(pk=request.user.id)
         user.is_onboarded = True
