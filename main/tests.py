@@ -250,7 +250,7 @@ class StoreTest(TestCase):
             'city': 'Accra',
             'country': 'GH',
             'instagram_handle': '@guitooStudios',
-            'categories_ids': [str(self.category_shoes.pk)]
+            'categories_ids': [f"{str(self.category_shoes.id)}"]
         }
 
         response = self.client.post(
