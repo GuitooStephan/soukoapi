@@ -16,7 +16,8 @@ models = [
     ProfitTimestampedMetric,
     StorePeriodicTask,
     OrderItem,
-    Payment
+    Payment,
+    OrderConfirmationCode
 ]
 
 class UserCreationForm(forms.ModelForm):
