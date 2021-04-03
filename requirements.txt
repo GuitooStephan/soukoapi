@@ -29,3 +29,6 @@ redgreenunittest==0.1.1
 django-extensions==3.0.9
 Werkzeug==1.0.1
 sentry-sdk==0.15.1
+boto3==1.12.39
+django-storages==1.9.1
+Pillow==7.1.2

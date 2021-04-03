@@ -11,6 +11,7 @@ from main.tasks import (
 )
 from .models import (
     Store,
+    Order,
     StorePeriodicTask
 )
 

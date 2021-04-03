@@ -44,6 +44,8 @@ from .serializers import (
     CustomerSerializer,
     StoreCustomerSerializer,
     ProductSerializer,
+    SimpleProductSerializer,
+    SimpleStoreSerializer,
     StoreProductSerializer,
     OrderSerializer,
     OrderItemSerializer,
@@ -57,6 +59,7 @@ from .serializers import (
 )
 from main.models import (
     VerificationCode,
+    OrderConfirmationCode,
     Store,
     Admin,
     Customer,
@@ -178,35 +181,26 @@ class StoresEndpoint(generics.ListCreateAPIView):
     permission_classes = ( IsAuthenticated, )
 
     def create(self, request, *args, **kwargs):
-        try:
-            data = request.data.copy()
-            user_id = data.pop( 'user_id' )
-            admin = Admin.objects.create( **{
-                'role':'OWNER',
-                'user_id':user_id
-            } )
-            
-            data['admins_ids'] = [admin.pk]
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
+        data = request.data
+        admin, _ = Admin.objects.get_or_create( **{
+            'role':'OWNER',
+            'user_id':request.user.id
+        } )
 
-            user = User.objects.get(pk=user_id)
-            user.is_onboarded = True
-            user.save(update_fields=["is_onboarded"])
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save( admins=[admin] )
 
-            store = self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
+        user = User.objects.get(pk=request.user.id)
+        user.is_onboarded = True
+        user.save(update_fields=["is_onboarded"])
+        headers = self.get_success_headers(serializer.data)
 
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED,
-                headers=headers,
-            )
-        except Exception as e:
-            return Response(
-                { "error": str(e) },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
 class StoreEndpoint(generics.RetrieveUpdateAPIView):
     serializer_class = StoreSerializer
@@ -215,6 +209,12 @@ class StoreEndpoint(generics.RetrieveUpdateAPIView):
 
     def put(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
+
+
+class StoreForCustomersEndpoint(generics.RetrieveAPIView):
+    serializer_class = SimpleStoreSerializer
+    queryset = Store.objects.all()
+    permission_classes = ( AllowAny, )
 
 
 class StoreAdminsEndpoint(generics.ListAPIView):
@@ -315,6 +315,24 @@ class StoreProductsEndpoint(generics.ListAPIView):
         return store.products.all()
 
 
+class StoreProductsForCustomersEndpoint(generics.ListAPIView):
+    serializer_class = SimpleProductSerializer
+    permission_classes = ( AllowAny, )
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    ordering = ["-created_at"]
+    ordering_fields = [ "created_at", ]
+    search_fields = [
+        "name"
+    ]
+
+    def get_queryset(self):
+        store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
+        return store.products.all()
+
+
 class StoreOrdersEndpoint(generics.ListAPIView):
     serializer_class = StoreOrderSerializer
     permission_classes = ( IsAuthenticated, )
@@ -329,11 +347,90 @@ class StoreOrdersEndpoint(generics.ListAPIView):
         "customer__first_name",
         "customer__last_name"
     ]
-    filterset_fields = ["payment_status",]
+    filterset_fields = ["payment_status", "confirmed"]
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
         return store.orders.all()
+
+
+class CustomersPlaceOrderEndpoint( generics.CreateAPIView ):
+    serializer_class = OrderSerializer
+    permission_classes = ( AllowAny, )
+    queryset = Order.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+
+        customer_data = data.pop( "customer" )
+
+        try:
+            customer = Customer.objects.get( email= customer_data[ "email" ], store= customer_data[ "store_id" ] )
+        except Customer.DoesNotExist:
+            customer_serializer = CustomerSerializer( data=customer_data )
+            customer_serializer.is_valid( raise_exception=True )
+            customer = customer_serializer.save();
+
+        order_data = data.pop( "order" )
+        order_data[ "customer_id" ] = customer.id
+
+        serializer = self.get_serializer(data=order_data)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_create(serializer)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+    def perform_create(self, serializer):
+        order = serializer.save()
+        confirmation_code = OrderConfirmationCode.objects.create(order=order)
+        confirm_email_url = f"customers/store/{str(order.store.id)}/orders/confirm-order/?code={confirmation_code.code}"
+        send_email_async.delay(
+            template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
+            tos=[order.customer.email],
+            subject='Souko - Order Confirmation Email',
+            context={
+                'subject': 'Souko - Order Confirmation Email',
+                'first_name': order.customer.first_name,
+                'message': '''Thank so much for buying our products. Kindly click on the url below to confirm your order''',
+                'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
+            },
+            index=0
+        )
+
+
+class CustomersConfirmOrderEndpoint(generics.GenericAPIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, *args, **kwargs):
+        try:
+            code = request.query_params.get("code", None)
+            confirmation_code = OrderConfirmationCode.objects.get( code=code )
+
+            order = Order.objects.get( id = confirmation_code.order.id )
+            if not order.confirmed:
+                order.confirmed = True
+                order.save(update_fields=["confirmed"])
+            confirmation_code.delete()
+            send_email_async.delay(
+                template_id=settings.TEMPLATE_EMAIL_WITH_MESSAGE_ID,
+                tos=[order.store.admins.all().first().user.email],
+                subject='Souko - Order Alert',
+                context={
+                    'subject': 'Souko - Order Alert',
+                    'first_name': order.store.name,
+                    'message': f'''{order.customer.first_name} just confirmed an order on your store. Kindly check it out''',
+                },
+                index=0
+            )
+            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}customer/confirm-order/{self.kwargs['pk']}/success" )
+        except OrderConfirmationCode.DoesNotExist:
+            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}customer/confirm-order/{self.kwargs['pk']}/failure" )
 
 
 class CustomersEndpoint(generics.ListCreateAPIView):
@@ -365,7 +462,7 @@ class CustomerOrdersEndpoint(generics.ListAPIView):
         "customer__first_name",
         "customer__last_name"
     ]
-    filterset_fields = ["payment_status",]
+    filterset_fields = ["payment_status", "confirmed"]
 
     def get_queryset(self):
         customer = get_object_or_404(Customer.objects.filter( pk=self.kwargs["pk"] ))
@@ -377,6 +474,7 @@ class CustomerOrderedProductsEndpoint(generics.ListAPIView):
     permission_classes = ( IsAuthenticated, )
     filter_backends = [
         DjangoFilterBackend,
+        filters.SearchFilter,
         filters.OrderingFilter
     ]
     ordering = ["-created_at"]
@@ -396,8 +494,8 @@ class ProductsEndpoint(generics.ListCreateAPIView):
     permission_classes = ( IsAuthenticated, )
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        stock_quantity = data.pop( 'quantity' )
+        data = request.data
+        stock_quantity = data.pop( 'quantity' )[0]
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = self.perform_create(serializer)
@@ -503,7 +601,7 @@ class OrderPaymentsEndpoint(generics.ListAPIView):
 class OrderItemsEndpoint(generics.CreateAPIView):
     serializer_class = OrderItemSerializer
     queryset = OrderItem.objects.all()
-    permission_classes = ( IsAuthenticated, )
+    permission_classes = ( AllowAny, )
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()

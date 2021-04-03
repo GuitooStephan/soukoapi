@@ -21,6 +21,7 @@ from .generators import (
 )
 from .models import (
     VerificationCode,
+    OrderConfirmationCode,
     Category,
     Admin,
     Store,
@@ -416,6 +417,79 @@ class CustomerTest(TestCase):
         response = self.client.put(
             reverse('customer_details', kwargs={'pk': self.customer.pk}),
             data=json.dumps(payload), content_type='application/json'
+        )
+        results = json.loads(response.content.decode('utf-8'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class AnonymousCustomerTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(**{
+            'email': 'guy@ampersandllc.co',
+            'password': '2Password_',
+            'first_name' : 'Guy',
+            'username': 'guitoo',
+            'last_name' : 'Tanoh',
+            'is_email_confirmed': True
+        })
+
+        self.user_two = User.objects.create_user(**{
+            'email': 'steph@ampersandllc.co',
+            'password': '2Password_',
+            'first_name' : 'Guy',
+            'username': 'guitoo',
+            'last_name' : 'Tanoh',
+            'is_email_confirmed': True
+        })
+
+        self.category_shoes = Category.objects.create(**{
+            'name': 'Shoes'
+        })
+
+        self.category_clothes = Category.objects.create(**{
+            'name': 'Clothes'
+        })
+
+        self.store = Store.objects.create(**{
+            'name': 'Noir Life',
+            'phone_number': '+233209456202'
+        })
+
+        self.store_two = Store.objects.create(**{
+            'name': 'Noir Thing',
+            'phone_number': '+233209456202'
+        })
+
+        self.store.categories.set( [ self.category_shoes ] )
+
+        self.admin = Admin.objects.create(**{
+            'user': self.user,
+            'store': self.store,
+            'role': 'OWNER'
+        })
+
+        self.customer = Customer.objects.create(**{
+            'store': self.store,
+            'first_name': 'Guitoo',
+            'last_name': 'Steph',
+            'email': 'something@something.com'
+        })
+
+        self.client = APIClient()
+
+    def test_fetch_store_products(self):
+        response = self.client.get(
+            reverse('store_products_for_customers', kwargs={'pk': self.store.pk}),
+            content_type='application/json'
+        )
+        results = json.loads(response.content.decode('utf-8'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_fetch_store(self):
+        response = self.client.get(
+            reverse('store_for_customers', kwargs={'pk': self.store.pk}),
+            content_type='application/json'
         )
         results = json.loads(response.content.decode('utf-8'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -917,6 +991,136 @@ class OrderTest(TestCase):
         results = json.loads(response.content.decode('utf-8'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+
+class AnonymousOrderTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(**{
+            'email': 'guy@ampersandllc.co',
+            'password': '2Password_',
+            'first_name' : 'Guy',
+            'username': 'guitoo',
+            'last_name' : 'Tanoh',
+            'is_email_confirmed': True
+        })
+
+        self.category_shoes = Category.objects.create(**{
+            'name': 'Shoes'
+        })
+
+        self.category_clothes = Category.objects.create(**{
+            'name': 'Clothes'
+        })
+
+        self.store = Store.objects.create(**{
+            'name': 'Noir Life',
+            'phone_number': '+233209456202'
+        })
+
+        self.store.categories.set( [ self.category_shoes ] )
+
+        self.admin = Admin.objects.create(**{
+            'user': self.user,
+            'store': self.store,
+            'role': 'OWNER'
+        })
+
+        self.customer = Customer.objects.create(**{
+            'store': self.store,
+            'first_name': 'Guitoo',
+            'last_name': 'Steph',
+            'email': 't.guystephane@gmail.com'
+        })
+
+        self.product = Product.objects.create(**{
+            'store': self.store,
+            'name': 'Goyard Bags',
+            'buying_price': 170.0,
+            'selling_price': 50.0
+        })
+
+        self.stock = ProductStock.objects.create(**{
+            'product': self.product,
+            'quantity': 9
+        })
+
+        self.product_two = Product.objects.create(**{
+            'store': self.store,
+            'name': 'Gucci Bags',
+            'buying_price': 170.0,
+            'selling_price': 50.0
+        })
+
+        self.stock_two = ProductStock.objects.create(**{
+            'product': self.product_two,
+            'quantity': 9
+        })
+
+        self.order = Order.objects.create(**{
+            'store': self.store,
+            'customer': self.customer,
+            'delivery_fee': 0.0,
+            'confirmed': False
+        })
+
+        self.code = OrderConfirmationCode.objects.create(**{
+            'order': self.order,
+            'code': generate_verification_code()
+        })
+
+        self.order_item = OrderItem.objects.create(**{
+            'order': self.order,
+            'product': self.product,
+            'product_stock': self.stock,
+            'quantity': 3
+        })
+
+        self.order_item_two = OrderItem.objects.create(**{
+            'order': self.order,
+            'product': self.product_two,
+            'product_stock': self.stock_two,
+            'quantity': 2
+        })
+
+        self.payment = Payment.objects.create(**{
+            'order': self.order,
+            'amount': 50.0
+        })
+
+        self.client = APIClient()
+
+    def test_place_order(self):
+        payload = {
+            'order': {
+                'store_id': str(self.store.pk),
+                'confirmed': False
+            },
+            'customer': {
+                'store_id': str(self.store.pk),
+                'first_name': 'Guitoo',
+                'last_name': 'Stephan',
+                'phone_number': '+233209456202',
+                'city': 'Accra',
+                'email': 'guystephane00@gmail.com',
+                'country': 'GH',
+                'address': 'BP 21 Bonoua'
+            }
+        }
+
+        response = self.client.post(
+            reverse('customers_place_order', kwargs={'pk': self.store.pk}),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_confirm_order(self):
+        url = reverse('customers_confirm_order', kwargs={'pk': self.store.pk})
+        response = self.client.get(
+            f"{url}?code={self.code.code}",
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
 
 
 class ReportTest(TestCase):

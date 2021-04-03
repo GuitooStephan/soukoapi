@@ -103,7 +103,8 @@ INSTALLED_APPS = [
     'django_countries',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    'django_extensions'
+    'django_extensions',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -225,12 +226,30 @@ REDIS_URL = os.environ.get("REDIS_URL")
 
 FILE_UPLOAD_HANDLERS = ("django.core.files.uploadhandler.TemporaryFileUploadHandler",)
 
-FILE_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024
+
+AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
+
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
+
+AWS_STORAGE_BUCKET_NAME = get_secret("AWS_STORAGE_BUCKET_NAME")
+
+AWS_DEFAULT_ACL = get_secret("AWS_DEFAULT_ACL")
+
+AWS_S3_REGION_NAME = get_secret("AWS_REGION")
+
+AWS_S3_CUSTOM_DOMAIN = get_secret("AWS_S3_CUSTOM_DOMAIN")
+
+AWS_S3_COMPRESSED_IMAGES_DOMAIN = get_secret("AWS_S3_COMPRESSED_IMAGES_DOMAIN")
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 
 TEMPLATE_EMAIL_WITH_URL_ID = os.environ.get("TEMPLATE_EMAIL_WITH_URL_ID")
+
+TEMPLATE_EMAIL_WITH_MESSAGE_ID = os.environ.get("TEMPLATE_EMAIL_WITH_MESSAGE_ID")
 
 
 # Static files (CSS, JavaScript, Images)

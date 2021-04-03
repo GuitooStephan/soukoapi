@@ -157,6 +157,11 @@ class StoreSerializer( serializers.ModelSerializer ):
         many=True,
         queryset=Admin.objects.all()
     )
+    compressed_logo_url = serializers.SerializerMethodField( read_only=True )
+
+
+    def get_compressed_logo_url(self, obj):
+        return f"https://{settings.AWS_S3_COMPRESSED_IMAGES_DOMAIN}/{obj.logo_url.name}" if obj.logo_url else ""
 
     class Meta:
         model = Store
@@ -178,6 +183,13 @@ class StoreSerializer( serializers.ModelSerializer ):
 
 class SimpleStoreSerializer( serializers.ModelSerializer ):
     categories = CategorySerializer(many=True, read_only=True)
+
+    compressed_logo_url = serializers.SerializerMethodField( read_only=True )
+
+
+    def get_compressed_logo_url(self, obj):
+        print( obj.logo_url )
+        return f"https://{settings.AWS_S3_COMPRESSED_IMAGES_DOMAIN}/{obj.logo_url.name}" if obj.logo_url else ""
 
     class Meta:
         model = Store
@@ -258,12 +270,36 @@ class ProductSerializer(serializers.ModelSerializer):
     stocks = ProductStockSerializer( read_only=True, many=True )
     total_stock = serializers.SerializerMethodField()
     num_of_orders =serializers.SerializerMethodField()
+    compressed_product_picture_url = serializers.SerializerMethodField( read_only=True )
 
     def get_total_stock(self, obj):
         return obj.get_total_stock()
 
     def get_num_of_orders(self, obj):
         return obj.get_number_of_ordered_items_in_period()
+
+    def get_compressed_product_picture_url(self, obj):
+        return f"https://{settings.AWS_S3_COMPRESSED_IMAGES_DOMAIN}/{obj.product_picture_url.name}" if obj.product_picture_url else ""
+
+    class Meta:
+        model = Product
+        fields = ("__all__")
+        read_only_fields = ("total_stock", "num_of_orders",)
+
+
+class SimpleProductSerializer(serializers.ModelSerializer):
+    total_stock = serializers.SerializerMethodField()
+    num_of_orders =serializers.SerializerMethodField()
+    compressed_product_picture_url = serializers.SerializerMethodField( read_only=True )
+
+    def get_total_stock(self, obj):
+        return obj.get_total_stock()
+
+    def get_num_of_orders(self, obj):
+        return obj.get_number_of_ordered_items_in_period()
+
+    def get_compressed_product_picture_url(self, obj):
+        return f"https://{settings.AWS_S3_COMPRESSED_IMAGES_DOMAIN}/{obj.product_picture_url.name}" if obj.product_picture_url else ""
 
     class Meta:
         model = Product
@@ -293,12 +329,16 @@ class StoreProductSerializer(serializers.ModelSerializer):
     stocks = ProductStockSerializer( read_only=True, many=True )
     total_stock = serializers.SerializerMethodField()
     num_of_orders =serializers.SerializerMethodField()
+    compressed_product_picture_url = serializers.SerializerMethodField( read_only=True )
 
     def get_total_stock(self, obj):
         return obj.get_total_stock()
 
     def get_num_of_orders(self, obj):
         return obj.get_number_of_ordered_items_in_period()
+
+    def get_compressed_product_picture_url(self, obj):
+        return f"https://{settings.AWS_S3_COMPRESSED_IMAGES_DOMAIN}/{obj.product_picture_url.name}" if obj.product_picture_url else ""
     class Meta:
         model = Product
         fields = ("__all__")
@@ -387,6 +427,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "amount_paid",
             "balance",
             "payment_status",
+            "confirmed",
             "profit",
             "paid_on",
             "created_at"
@@ -435,8 +476,10 @@ class StoreOrderSerializer(serializers.ModelSerializer):
             "balance",
             "payment_status",
             "profit",
+            "confirmed",
             "number_of_products",
-            "paid_on"
+            "paid_on",
+            "created_at"
         )
         read_only_fields = (
             "number_of_products", "payment_status"
@@ -457,11 +500,34 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
         queryset=OrderItem.objects.all()
     )
     number_of_products = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
 
     def get_number_of_products(self, obj):
         return obj.get_number_of_products()
 
+    def get_payment_status(self, obj):
+        return obj.get_payment_status_display()
+
     class Meta:
         model = Order
-        fields = ("__all__")
-        read_only_fields = ( "number_of_products", )
+        fields = (
+            "id",
+            "store",
+            "store_id",
+            "delivery_fee",
+            "total_amount",
+            "order_items",
+            "order_items_ids",
+            "payments",
+            "amount_paid",
+            "balance",
+            "payment_status",
+            "profit",
+            "confirmed",
+            "number_of_products",
+            "paid_on",
+            "created_at"
+        )
+        read_only_fields = (
+            "number_of_products", "payment_status"
+        )

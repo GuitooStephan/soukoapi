@@ -47,4 +47,9 @@ urlpatterns = [
     path("order-items/<uuid:pk>/", views.OrderItemEndpoint.as_view(), name="order_item_details"),
     path("payments/", views.PaymentsEndpoint.as_view(), name="payments"),
     path("payments/<uuid:pk>/", views.PaymentEndpoint.as_view(), name="payment_details"),
+
+    path("customers/store/<uuid:pk>/products/", views.StoreProductsForCustomersEndpoint.as_view(), name="store_products_for_customers"),
+    path("customers/store/<uuid:pk>/", views.StoreForCustomersEndpoint.as_view(), name="store_for_customers"),
+    path("customers/store/<uuid:pk>/orders/place-order/", views.CustomersPlaceOrderEndpoint.as_view(), name="customers_place_order"),
+    path("customers/store/<uuid:pk>/orders/confirm-order/", views.CustomersConfirmOrderEndpoint.as_view(), name="customers_confirm_order")
 ]
