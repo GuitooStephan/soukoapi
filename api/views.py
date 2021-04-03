@@ -495,7 +495,7 @@ class ProductsEndpoint(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        stock_quantity = data.pop( 'quantity' )
+        stock_quantity = data.pop( 'quantity' )[0]
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = self.perform_create(serializer)
