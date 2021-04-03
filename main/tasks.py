@@ -34,7 +34,7 @@ def create_store_orders_metrics(self, store_id):
         timestamped_metric, _ = models.OrdersTimestampedMetric.objects.get_or_create(
             date=today, store=store
         )
-        timestamped_metric.orders = store.orders.filter(created_at__year=today.year, created_at__month=today.month, created_at__day=today.day).count()
+        timestamped_metric.orders = store.orders.filter(created_at__year=today.year, created_at__month=today.month, created_at__day=today.day, confirmed=True).count()
         timestamped_metric.save()
     except ObjectDoesNotExist:
         pass
@@ -50,7 +50,7 @@ def create_store_profit_metrics(self, store_id):
         timestamped_metric, _ = models.ProfitTimestampedMetric.objects.get_or_create(
             date=today, store=store
         )
-        orders = store.orders.filter(paid_on__year=today.year, paid_on__month=today.month, paid_on__day=today.day)
+        orders = store.orders.filter(paid_on__year=today.year, paid_on__month=today.month, paid_on__day=today.day, confirmed=True)
         timestamped_metric.profit = float( sum(o.profit for o in orders) )
         timestamped_metric.save()
     except ObjectDoesNotExist:

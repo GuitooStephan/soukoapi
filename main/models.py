@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import pytz
+import os
 import uuid
 import json
 import pydash
@@ -30,6 +31,12 @@ from django_countries.fields import CountryField
 
 from .generators import generate_verification_code
 from . import constants
+
+class UniqueNameFileField(models.ImageField):
+    def generate_filename(self, instance, filename):
+        _, ext = os.path.splitext(filename)
+        name = f"{uuid.uuid4().hex}{ext}"
+        return super().generate_filename(instance, name)
 
 class UserManager(BaseUserManager):
     def _create_user(self, email, password, **extra_fields):
@@ -206,6 +213,8 @@ class Store(models.Model):
         editable=False
     )
 
+    logo_url = UniqueNameFileField(blank=True, null=True)
+
     name = models.CharField(
         verbose_name='Name',
         max_length=255,
@@ -292,10 +301,12 @@ class Store(models.Model):
             _filter = Q(paid_on__range=[start, end])
 
         orders = Order.objects.filter(
-            store=self
+            store=self,
+            confirmed=True
         ).order_by("created_at") if not _filter else Order.objects.filter(
             _filter,
-            store=self
+            store=self,
+            confirmed=True
         ).order_by("created_at")
 
         return sum(o.profit for o in orders)
@@ -417,17 +428,20 @@ class Store(models.Model):
             queries &= Q(created_at__range=[start, end])
 
         all_orders = Order.objects.filter(
-            queries
+            queries,
+            confirmed=True
         ).order_by("created_at")
 
         pending_orders = Order.objects.filter(
             queries,
-            payment_status="PENDING"
+            payment_status="PENDING",
+            confirmed=True
         ).order_by("created_at")
 
         paid_orders = Order.objects.filter(
             queries,
-            payment_status="PAID"
+            payment_status="PAID",
+            confirmed=True
         ).order_by("created_at")
 
         return { 'number_of_orders': all_orders.count(), 'number_of_pending_orders': pending_orders.count(), 'number_of_paid_orders': paid_orders.count() }
@@ -493,6 +507,8 @@ class Product(models.Model):
         editable=False
     )
 
+    product_picture_url = UniqueNameFileField(blank=True, null=True)
+
     store = models.ForeignKey(
         Store,
         on_delete=models.CASCADE,
@@ -538,7 +554,9 @@ class Product(models.Model):
 
     @property
     def current_stock(self):
-        return self.stocks.filter( quantity__gt=0 ).first()
+        stocks = [x for x in self.stocks.all() if x.num_of_remaining_items > 0]
+        stock = stocks[0] if len( stocks ) else self.stocks.filter( quantity__gt=0 ).first()
+        return stock
 
     def get_total_stock(self):
         stocks = self.stocks.all()
@@ -753,7 +771,7 @@ class Customer(models.Model):
         verbose_name_plural = 'customers'
 
     def get_ordered_products(self):
-        return Product.objects.filter( order_items__order__customer__pk=self.pk )
+        return Product.objects.filter( order_items__order__customer__pk=self.pk ).distinct()
 
     def get_number_of_orders_for_product(self, product_id):
         order_items = OrderItem.objects.filter(
@@ -763,7 +781,7 @@ class Customer(models.Model):
         return reduce( lambda x, y : x + y, [ o.quantity for o in order_items ], 0 )
 
     def get_number_of_orders(self):
-        return self.orders.all().count()
+        return self.orders.filter( confirmed=True ).count()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -771,7 +789,7 @@ class Customer(models.Model):
 
 class Order(models.Model):
     PAYMENT_STATUS = [
-        ('PENDING', 'Pending'),
+        ('PENDING', 'Not Paid'),
         ('PARTIALLY_PAID', 'Partially Paid'),
         ('PAID', 'Paid')
     ]
@@ -807,6 +825,11 @@ class Order(models.Model):
     paid_on = models.DateField( null=True, blank=True )
 
     delivery_fee = models.FloatField(blank=True, null=True, default=0.0)
+
+    confirmed = models.BooleanField(
+        verbose_name='Confirmed',
+        default=True
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -853,6 +876,27 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order from {self.store.name} by {self.customer.first_name} {self.customer.last_name}"
+
+
+class OrderConfirmationCode(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='confirmation_code'
+    )
+
+    code = models.CharField(max_length=6, default=generate_verification_code)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return f"Order Confirmation Code for { self.order.id }"
 
 
 class OrdersTimestampedMetric(models.Model):

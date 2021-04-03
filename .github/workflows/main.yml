@@ -47,6 +47,14 @@ jobs:
       EMAIL_BASE_URL: ${{ secrets.EMAIL_BASE_URL }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
       TEMPLATE_EMAIL_WITH_URL_ID: ${{ secrets.TEMPLATE_EMAIL_WITH_URL_ID }}
+      TEMPLATE_EMAIL_WITH_MESSAGE_ID: ${{secrets.TEMPLATE_EMAIL_WITH_MESSAGE_ID}}
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      AWS_STORAGE_BUCKET_NAME: ${{secrets.AWS_STORAGE_BUCKET_NAME}}
+      AWS_DEFAULT_ACL: ${{secrets.AWS_DEFAULT_ACL}}
+      AWS_S3_REGION_NAME: ${{secrets.AWS_S3_REGION_NAME}}
+      AWS_S3_CUSTOM_DOMAIN: ${{secrets.AWS_S3_CUSTOM_DOMAIN}}
+      AWS_S3_COMPRESSED_IMAGES_DOMAIN: ${{secrets.AWS_S3_COMPRESSED_IMAGES_DOMAIN}}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
