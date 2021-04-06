@@ -431,6 +431,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "confirmed",
             "profit",
             "paid_on",
+            "number",
             "created_at"
         )
         read_only_fields = ( 'created_at', "payment_status" )
@@ -480,6 +481,7 @@ class StoreOrderSerializer(serializers.ModelSerializer):
             "confirmed",
             "number_of_products",
             "paid_on",
+            "number",
             "created_at"
         )
         read_only_fields = (
@@ -527,6 +529,7 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "confirmed",
             "number_of_products",
             "paid_on",
+            "number",
             "created_at"
         )
         read_only_fields = (

@@ -350,7 +350,8 @@ class StoreOrdersEndpoint(generics.ListAPIView):
     ordering = ["-created_at"]
     search_fields = [
         "customer__first_name",
-        "customer__last_name"
+        "customer__last_name",
+        "number"
     ]
     filterset_fields = ["payment_status", "confirmed"]
 
@@ -402,7 +403,7 @@ class CustomersPlaceOrderEndpoint( generics.CreateAPIView ):
             context={
                 'subject': 'Souko - Order Confirmation Email',
                 'first_name': order.customer.first_name,
-                'message': '''Thank so much for buying our products. Kindly click on the url below to confirm your order''',
+                'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nKindly click on the url below to confirm your order.',
                 'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
             },
             index=0
@@ -429,7 +430,7 @@ class CustomersConfirmOrderEndpoint(generics.GenericAPIView):
                 context={
                     'subject': 'Souko - Order Alert',
                     'first_name': order.store.name,
-                    'message': f'''{order.customer.first_name} just confirmed an order on your store. Kindly check it out''',
+                    'message': f'''{order.customer.first_name} just confirmed an order on your store.\nThe order number is {order.number}.\nKindly check it out.''',
                 },
                 index=0
             )
@@ -465,7 +466,8 @@ class CustomerOrdersEndpoint(generics.ListAPIView):
     ordering_fields = [ "created_at", ]
     search_fields = [
         "customer__first_name",
-        "customer__last_name"
+        "customer__last_name",
+        "number"
     ]
     filterset_fields = ["payment_status", "confirmed"]
 
