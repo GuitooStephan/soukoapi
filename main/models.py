@@ -29,7 +29,7 @@ from django.db.models.functions import (
 from phonenumber_field.modelfields import PhoneNumberField
 from django_countries.fields import CountryField
 
-from .generators import generate_verification_code
+from .generators import generate_verification_code, generate_order_number
 from . import constants
 
 class UniqueNameFileField(models.ImageField):
@@ -830,6 +830,8 @@ class Order(models.Model):
         verbose_name='Confirmed',
         default=True
     )
+
+    number = models.CharField(max_length=200, default=generate_order_number)
 
     created_at = models.DateTimeField(
         auto_now_add=True
