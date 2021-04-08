@@ -148,6 +148,38 @@ class UserVerify(generics.GenericAPIView):
         except VerificationCode.DoesNotExist:
             return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}{'account/auth/sign-in'}" )
 
+
+class ResentVerificationCodeEndpoint(generics.GenericAPIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            verification_code = VerificationCode.objects.get( email=data['email'] )
+            user = get_object_or_404(User, email=verification_code.email)
+
+            confirm_email_url = f"users/verify/?code={verification_code.code}"
+            send_email_async.delay(
+                template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
+                tos=[user.email],
+                subject='Souko - Account Confirmation Email',
+                context={
+                    'subject': 'Souko - Account Confirmation Email',
+                    'first_name': user.first_name,
+                    'message': '''We are so happy to have you as a user on our platform, kindly click on the url below to confirm your account''',
+                    'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
+                },
+                index=0
+            )
+
+            return Response( {}, status=status.HTTP_204_NO_CONTENT, )
+        except VerificationCode.DoesNotExist:
+            return Response(
+                {"message": "Email has not been registered in our database"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class ChangePasswordEndpoint(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = ( IsAuthenticated, )
@@ -408,6 +440,42 @@ class CustomersPlaceOrderEndpoint( generics.CreateAPIView ):
             },
             index=0
         )
+
+
+class ResentOrderConfirmationCodeEndpoint( generics.GenericAPIView ):
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            order = Order.objects.get( id=data['order_id'] )
+
+            confirmation_code = OrderConfirmationCode.objects.get(order=order)
+            confirm_email_url = f"customers/store/{str(order.store.id)}/orders/confirm-order/?code={confirmation_code.code}"
+            send_email_async.delay(
+                template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
+                tos=[order.customer.email],
+                subject='Souko - Order Confirmation Email',
+                context={
+                    'subject': 'Souko - Order Confirmation Email',
+                    'first_name': order.customer.first_name,
+                    'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nKindly click on the url below to confirm your order.',
+                    'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
+                },
+                index=0
+            )
+
+            return Response( {}, status=status.HTTP_204_NO_CONTENT, )
+        except Order.DoesNotExist:
+            return Response(
+                {"message": "Order has not been found in our database"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except OrderConfirmationCode.DoesNotExist:
+            return Response(
+                {"message": "Confirmation code has not been found in our database"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CustomersConfirmOrderEndpoint(generics.GenericAPIView):

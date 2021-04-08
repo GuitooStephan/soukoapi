@@ -49,7 +49,7 @@ class AuthenticationTest(TestCase):
         })
 
         self.user_two = User.objects.create_user(**{
-            'email': 'steph@ampersandllc.co',
+            'email': 't.guystephane@gmail.com',
             'password': '2Password_',
             'first_name' : 'Guy',
             'username': 'guitoo',
@@ -65,6 +65,11 @@ class AuthenticationTest(TestCase):
 
         self.code = VerificationCode.objects.create(**{
             'email': self.user.email,
+            'code': generate_verification_code()
+        })
+
+        self.code_two = VerificationCode.objects.create(**{
+            'email': self.user_two.email,
             'code': generate_verification_code()
         })
 
@@ -116,6 +121,20 @@ class AuthenticationTest(TestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+
+    @patch("main.signals.send_email_async.delay")
+    def test_users_resend_verification_code(self, send_email_async):
+        send_email_async.return_value = Mock()
+        payload = {
+            'email': str(self.user_two.email)
+        }
+
+        response = self.client.post(
+            reverse('users_resend_verification_code'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     @patch("main.signals.send_email_async.delay")
     def test_reset_password(self, send_email_async):
@@ -1115,6 +1134,20 @@ class AnonymousOrderTest(TestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    @patch("main.signals.send_email_async.delay")
+    def test_users_resend_verification_code(self, send_email_async):
+        send_email_async.return_value = Mock()
+        payload = {
+            'order_id': str(self.order.id)
+        }
+
+        response = self.client.post(
+            reverse('customers_resend_confirmation_code', kwargs={'pk': self.store.pk}),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     @patch("api.views.send_email_async.delay")
     def test_confirm_order(self, send_email_async):
