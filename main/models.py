@@ -696,9 +696,9 @@ class Customer(models.Model):
     email = models.EmailField(
         verbose_name='Email',
         max_length=254,
-        blank=False,
-        null=False,
-        unique=True
+        blank=True,
+        null=True,
+        default=None
     )
 
     first_name = models.CharField(
@@ -867,7 +867,7 @@ class Order(models.Model):
 
     @property
     def profit(self):
-        return sum(i.profit for i in self.order_items.all())
+        return float( sum(i.profit for i in self.order_items.all()) ) - self.delivery_fee
 
     def get_number_of_products(self):
         return (
