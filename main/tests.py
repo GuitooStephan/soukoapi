@@ -430,7 +430,8 @@ class CustomerTest(TestCase):
 
     def test_update_customer(self):
         payload = {
-            'first_name': 'Gustave'
+            'first_name': 'Gustave',
+            'email': 'something@something.com'
         }
 
         response = self.client.put(

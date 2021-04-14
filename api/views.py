@@ -43,6 +43,7 @@ from .serializers import (
     StoreSerializer,
     AdminSerializer,
     CustomerSerializer,
+    EditCustomerSerializer,
     StoreCustomerSerializer,
     ProductSerializer,
     SimpleProductSerializer,
@@ -536,7 +537,7 @@ class CustomersEndpoint(generics.ListCreateAPIView):
 
 
 class CustomerEndpoint(generics.RetrieveUpdateAPIView):
-    serializer_class = CustomerSerializer
+    serializer_class = EditCustomerSerializer
     queryset = Customer.objects.all()
     permission_classes = ( IsAuthenticated, )
 

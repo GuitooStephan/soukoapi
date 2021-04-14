@@ -215,6 +215,26 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ("__all__")
 
 
+class EditCustomerSerializer(serializers.ModelSerializer):
+    store = StoreSerializer( read_only=True )
+    store_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        source='store',
+        queryset=Store.objects.all()
+    )
+
+    def validate(self, data):
+        if data.get( 'email' ) :
+            instance = getattr(self, 'instance', None)
+            if Customer.objects.exclude(pk=instance.pk).filter(email=data['email'], store=instance.store.id).exists():
+                raise serializers.ValidationError("Store customer with email already exists")
+        return data
+
+    class Meta:
+        model = Customer
+        fields = ("__all__")
+
+
 class ProductCustomerSerializer(serializers.ModelSerializer):
     store = StoreSerializer( read_only=True )
     store_id = serializers.PrimaryKeyRelatedField(
