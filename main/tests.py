@@ -430,7 +430,8 @@ class CustomerTest(TestCase):
 
     def test_update_customer(self):
         payload = {
-            'first_name': 'Gustave'
+            'first_name': 'Gustave',
+            'email': 'something@something.com'
         }
 
         response = self.client.put(
@@ -1048,7 +1049,8 @@ class AnonymousOrderTest(TestCase):
             'store': self.store,
             'first_name': 'Guitoo',
             'last_name': 'Steph',
-            'email': 't.guystephane@gmail.com'
+            'email': 't.guystephane@gmail.com',
+            'phone_number': '+233209456202'
         })
 
         self.product = Product.objects.create(**{
@@ -1135,7 +1137,7 @@ class AnonymousOrderTest(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    @patch("main.signals.send_email_async.delay")
+    @patch("api.views.send_email_async.delay")
     def test_users_resend_verification_code(self, send_email_async):
         send_email_async.return_value = Mock()
         payload = {
@@ -1153,11 +1155,13 @@ class AnonymousOrderTest(TestCase):
     def test_confirm_order(self, send_email_async):
         send_email_async.return_value = Mock()
         url = reverse('customers_confirm_order', kwargs={'pk': self.store.pk})
-        response = self.client.get(
-            f"{url}?code={self.code.code}",
+        payload = { 'code': self.code.code }
+        response = self.client.post(
+            f"{url}",
+            data=json.dumps(payload),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
 
 class ReportTest(TestCase):

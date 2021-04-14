@@ -52,6 +52,6 @@ urlpatterns = [
     path("customers/store/<uuid:pk>/products/", views.StoreProductsForCustomersEndpoint.as_view(), name="store_products_for_customers"),
     path("customers/store/<uuid:pk>/", views.StoreForCustomersEndpoint.as_view(), name="store_for_customers"),
     path("customers/store/<uuid:pk>/orders/place-order/", views.CustomersPlaceOrderEndpoint.as_view(), name="customers_place_order"),
-    path("customers/store/<uuid:pk>/orders/resend-order-confirmation-code", views.ResentOrderConfirmationCodeEndpoint.as_view(), name="customers_resend_confirmation_code"),
+    path("customers/store/<uuid:pk>/orders/resend-order-confirmation-code/", views.ResentOrderConfirmationCodeEndpoint.as_view(), name="customers_resend_confirmation_code"),
     path("customers/store/<uuid:pk>/orders/confirm-order/", views.CustomersConfirmOrderEndpoint.as_view(), name="customers_confirm_order")
 ]

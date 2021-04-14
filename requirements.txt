@@ -32,3 +32,4 @@ sentry-sdk==0.15.1
 boto3==1.12.39
 django-storages==1.9.1
 Pillow==7.1.2
+twilio==6.56.0

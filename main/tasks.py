@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .utils.mail.emailer import (
     Emailer
 )
+from .utils.sms.sender import send
 from . import models
 
 @shared_task(
@@ -24,6 +25,19 @@ def send_email_async(
     index
 ):
     Emailer( template_id, tos, subject, context, index ).send()
+
+
+@shared_task(
+    bind=True,
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def send_sms_async(
+    self,
+    body,
+    to
+):
+    send( body, to )
 
 
 @shared_task(bind=True)

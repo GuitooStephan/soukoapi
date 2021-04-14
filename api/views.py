@@ -33,6 +33,7 @@ from rest_framework.permissions import AllowAny
 
 from main.tasks import (
     send_email_async,
+    send_sms_async
 )
 from .serializers import (
     UserSerializer,
@@ -42,6 +43,7 @@ from .serializers import (
     StoreSerializer,
     AdminSerializer,
     CustomerSerializer,
+    EditCustomerSerializer,
     StoreCustomerSerializer,
     ProductSerializer,
     SimpleProductSerializer,
@@ -398,16 +400,25 @@ class CustomersPlaceOrderEndpoint( generics.CreateAPIView ):
     queryset = Order.objects.all()
 
     def create(self, request, *args, **kwargs):
+        self.customer_is_verified = False
         data = request.data.copy()
 
         customer_data = data.pop( "customer" )
 
         try:
+            if not customer_data.get('email'): raise Customer.DoesNotExist
             customer = Customer.objects.get( email= customer_data[ "email" ], store= customer_data[ "store_id" ] )
+            self.customer_is_verified = True
         except Customer.DoesNotExist:
-            customer_serializer = CustomerSerializer( data=customer_data )
-            customer_serializer.is_valid( raise_exception=True )
-            customer = customer_serializer.save();
+            try:
+                if not customer_data.get('phone_number'): raise Customer.DoesNotExist
+                customer = Customer.objects.get( phone_number= customer_data[ "phone_number" ], store= customer_data[ "store_id" ] )
+                self.customer_is_verified = True
+            except Customer.DoesNotExist:
+                self.customer_is_verified = False
+                customer_serializer = CustomerSerializer( data=customer_data )
+                customer_serializer.is_valid( raise_exception=True )
+                customer = customer_serializer.save();
 
         order_data = data.pop( "order" )
         order_data[ "customer_id" ] = customer.id
@@ -419,27 +430,38 @@ class CustomersPlaceOrderEndpoint( generics.CreateAPIView ):
 
         headers = self.get_success_headers(serializer.data)
         return Response(
-            serializer.data,
+            { "order": serializer.data, "customer_is_verified": self.customer_is_verified },
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
 
     def perform_create(self, serializer):
-        order = serializer.save()
-        confirmation_code = OrderConfirmationCode.objects.create(order=order)
-        confirm_email_url = f"customers/store/{str(order.store.id)}/orders/confirm-order/?code={confirmation_code.code}"
-        send_email_async.delay(
-            template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
-            tos=[order.customer.email],
-            subject='Souko - Order Confirmation Email',
-            context={
-                'subject': 'Souko - Order Confirmation Email',
-                'first_name': order.customer.first_name,
-                'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nKindly click on the url below to confirm your order.',
-                'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
-            },
-            index=0
-        )
+        order = serializer.save( confirmed=self.customer_is_verified )
+        if not self.customer_is_verified:
+            confirmation_code = OrderConfirmationCode.objects.create(order=order)
+            send_email_async.delay(
+                template_id=settings.TEMPLATE_EMAIL_WITH_MESSAGE_ID,
+                tos=[order.customer.email],
+                subject='Souko - Order Confirmation Email',
+                context={
+                    'subject': 'Souko - Order Confirmation Email',
+                    'first_name': order.customer.first_name,
+                    'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nYour confirmation code is {confirmation_code.code}.',
+                },
+                index=0
+            )
+        else:
+            send_email_async.delay(
+                template_id=settings.TEMPLATE_EMAIL_WITH_MESSAGE_ID,
+                tos=[order.store.admins.all().first().user.email],
+                subject='Souko - Order Alert',
+                context={
+                    'subject': 'Souko - Order Alert',
+                    'first_name': order.store.name,
+                    'message': f'''{order.customer.first_name} just confirmed an order from your store.\nThe order number is {order.number}.\nKindly check it out.''',
+                },
+                index=0
+            )
 
 
 class ResentOrderConfirmationCodeEndpoint( generics.GenericAPIView ):
@@ -451,16 +473,14 @@ class ResentOrderConfirmationCodeEndpoint( generics.GenericAPIView ):
             order = Order.objects.get( id=data['order_id'] )
 
             confirmation_code = OrderConfirmationCode.objects.get(order=order)
-            confirm_email_url = f"customers/store/{str(order.store.id)}/orders/confirm-order/?code={confirmation_code.code}"
             send_email_async.delay(
-                template_id=settings.TEMPLATE_EMAIL_WITH_URL_ID,
+                template_id=settings.TEMPLATE_EMAIL_WITH_MESSAGE_ID,
                 tos=[order.customer.email],
                 subject='Souko - Order Confirmation Email',
                 context={
                     'subject': 'Souko - Order Confirmation Email',
                     'first_name': order.customer.first_name,
-                    'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nKindly click on the url below to confirm your order.',
-                    'url': f"{settings.EMAIL_BASE_URL}{confirm_email_url}"
+                    'message': f'Thank so much for buying our products.\nThe order number is {order.number}.\nYour confirmation code is {confirmation_code.code}.',
                 },
                 index=0
             )
@@ -481,9 +501,9 @@ class ResentOrderConfirmationCodeEndpoint( generics.GenericAPIView ):
 class CustomersConfirmOrderEndpoint(generics.GenericAPIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         try:
-            code = request.query_params.get("code", None)
+            code = request.data.get("code", None)
             confirmation_code = OrderConfirmationCode.objects.get( code=code )
 
             order = Order.objects.get( id = confirmation_code.order.id )
@@ -502,9 +522,12 @@ class CustomersConfirmOrderEndpoint(generics.GenericAPIView):
                 },
                 index=0
             )
-            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}customer/confirm-order/{self.kwargs['pk']}/success" )
+            return Response( {}, status=status.HTTP_204_NO_CONTENT, )
         except OrderConfirmationCode.DoesNotExist:
-            return HttpResponseRedirect( redirect_to=f"{settings.FRONTEND_BASE_URL}customer/confirm-order/{self.kwargs['pk']}/failure" )
+            return Response(
+                {"message": "Confirmation code has not been found in our database"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CustomersEndpoint(generics.ListCreateAPIView):
@@ -514,7 +537,7 @@ class CustomersEndpoint(generics.ListCreateAPIView):
 
 
 class CustomerEndpoint(generics.RetrieveUpdateAPIView):
-    serializer_class = CustomerSerializer
+    serializer_class = EditCustomerSerializer
     queryset = Customer.objects.all()
     permission_classes = ( IsAuthenticated, )
 
