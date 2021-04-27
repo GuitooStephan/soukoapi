@@ -17,6 +17,9 @@ models = [
     StorePeriodicTask,
     OrderItem,
     Payment,
+    Subscriber,
+    SubscriptionPlan,
+    StoreSubscription,
     OrderConfirmationCode
 ]
 

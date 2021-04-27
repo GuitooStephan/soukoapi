@@ -57,7 +57,9 @@ from .serializers import (
     StockSerializer,
     PaymentSerializer,
     ProductCustomerSerializer,
-    CategorySerializer
+    CategorySerializer,
+    SubscriberSerializer,
+    SubscriptionPlanSerializer
 )
 from main.models import (
     VerificationCode,
@@ -70,7 +72,12 @@ from main.models import (
     OrderItem,
     ProductStock,
     Payment,
-    Category
+    Category,
+    Subscriber,
+    SubscriptionPlan
+)
+from .permissions import (
+    ProductsLimitPermission
 )
 
 User = get_user_model()
@@ -108,6 +115,11 @@ class UsersEndpoint(generics.ListCreateAPIView):
             index=0
         )
         return user
+
+
+class SubscribersEndpoint(generics.CreateAPIView):
+    queryset = Subscriber.objects.all()
+    serializer_class = SubscriberSerializer
 
 class UserEndpoint( generics.RetrieveUpdateAPIView ):
     serializer_class = UserSerializer
@@ -208,6 +220,10 @@ class CategoriesEndpoint( generics.ListCreateAPIView ):
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
     permission_classes = ( IsAuthenticated, )
+
+class SubscriptionPlanEndpoint( generics.ListAPIView ):
+    serializer_class = SubscriptionPlanSerializer
+    queryset = SubscriptionPlan.objects.all()
 
 class StoresEndpoint(generics.ListCreateAPIView):
     serializer_class = StoreSerializer
@@ -589,7 +605,7 @@ class CustomerOrderedProductsEndpoint(generics.ListAPIView):
 class ProductsEndpoint(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     queryset = Product.objects.all()
-    permission_classes = ( IsAuthenticated, )
+    permission_classes = ( IsAuthenticated, ProductsLimitPermission, )
 
     def create(self, request, *args, **kwargs):
         data = request.data

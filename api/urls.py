@@ -12,6 +12,8 @@ from rest_framework.schemas import get_schema_view
 from . import views
 
 urlpatterns = [
+    path("subscribe/", views.SubscribersEndpoint.as_view(), name="subscribers"),
+    path("plans/", views.SubscriptionPlanEndpoint.as_view(), name="subscription_plans"),
     path("users/", views.UsersEndpoint.as_view(), name="users"),
     path('users/<uuid:pk>/', views.UserEndpoint.as_view(), name='user_details'),
     path("users/login/", views.CustomAuthToken.as_view(), name="users_login"),

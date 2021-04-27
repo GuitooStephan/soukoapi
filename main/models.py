@@ -161,6 +161,30 @@ class User(AbstractUser):
         unique_together = ('id', 'username',)
 
 
+class Subscriber(models.Model):
+    id = models.UUIDField(
+        verbose_name='Subscriber Id',
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    email = models.EmailField(
+        verbose_name='Email',
+        max_length=254,
+        blank=False,
+        null=False,
+        unique=True
+    )
+
+    def __str__(self):
+        return f"{ self.email }"
+
+    class Meta:
+        ordering = ('id',)
+        verbose_name_plural = 'subscribers'
+
+
 class VerificationCode(models.Model):
     email = models.EmailField()
 
@@ -497,6 +521,109 @@ class Store(models.Model):
 
     def __str__(self):
         return f"{ self.name }"
+
+
+class SubscriptionPlan(models.Model):
+    FREE = 'FREE'
+
+    PLANS = (
+        (FREE, "Free"),
+    )
+
+    plan_type = models.CharField(choices=PLANS, max_length=255, default=FREE, unique=True)
+    period = models.IntegerField(default=constants.YEARLY_SUBSCRIPTION_PERIOD)
+    price = models.DecimalField(
+        default="0.0000", max_digits=19, decimal_places=4, help_text="monthy price"
+    )
+
+    products_limit = models.IntegerField(default=0)
+    orders_limit = models.IntegerField(default=0)
+    customers_limit = models.IntegerField(default=0)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return f"Subscription Plan ({self.get_plan_type_display()})"
+
+
+class StoreSubscription(models.Model):
+    FREE = "FREE"
+    CARD = "CARD"
+    MOBILE_MONEY = "MOBILE_MONEY"
+
+    CHANNELS = ((FREE, "Free"), (CARD, "Card"), (MOBILE_MONEY, "Mobile Money"))
+
+    store = models.OneToOneField(
+        Store,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="my_subscription",
+    )
+
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="subscriptions",
+    )
+
+    channel = models.CharField(choices=CHANNELS, max_length=255, default=FREE)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_cancelled = models.BooleanField(default=False)
+    needs_renewal = models.BooleanField(default=False)
+    # paystack_subscription_code = models.CharField(max_length=200, null=True, blank=True)
+    # paystack_email_token = models.CharField(max_length=200, null=True, blank=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return f"Store {self.store.name} Subscription"
+
+    def save(self, *args, **kwargs):
+        if self.plan is None:
+            self.plan = SubscriptionPlan.objects.get(
+                plan_type=SubscriptionPlan.FREE
+            )
+        super().save(*args, **kwargs)
+
+    def upgrade(self, plan=None):
+        pass
+
+    def downgrade(self, plan=None):
+        pass
+
+    def hit_products_limit(self):
+        current_products_count = Product.objects.filter(store=self.store).count()
+        if current_products_count >= self.plan.products_limit:
+            return True
+        return False
+
+    def hit_orders_limit(self):
+        current_orders_count = Order.objects.filter(store=self.store).count()
+        if current_orders_count >= self.plan.orders_limit:
+            return True
+        return False
+
+    def hit_customers_limit(self):
+        current_customers_count = Customer.objects.filter(store=self.store).count()
+        if current_customers_count >= self.plan.customers_limit:
+            return True
+        return False
 
 
 class Product(models.Model):
