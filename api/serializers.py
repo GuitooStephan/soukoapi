@@ -15,7 +15,10 @@ from main.models import (
     Order,
     OrderItem,
     ProductStock,
-    Payment
+    Payment,
+    Subscriber,
+    StoreSubscription,
+    SubscriptionPlan
 )
 
 User = get_user_model()
@@ -73,6 +76,16 @@ class UserSerializer(serializers.ModelSerializer):
             "is_superuser": {"read_only": True},
             "is_staff": {"read_only": True},
         }
+
+
+class SubscriberSerializer(serializers.ModelSerializer):
+    def validate_email(self, value):
+        if Subscriber.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Subscriber with email already exists")
+        return value
+    class Meta:
+        model = Subscriber
+        fields = "__all__"
 
 class AuthTokenSerializer(serializers.Serializer):
     email = serializers.CharField(label=_("Email"), write_only=True)
@@ -141,6 +154,42 @@ class AdminSerializer(serializers.ModelSerializer):
             "updated_at"
         )
 
+
+class SubscriptionPlanSerializer( serializers.ModelSerializer ):
+    plan_type = serializers.SerializerMethodField( read_only=True )
+
+    def get_plan_type(self, obj):
+        return obj.get_plan_type_display()
+    class Meta:
+        model = SubscriptionPlan
+        fields = (
+            "id",
+            "plan_type",
+            "period",
+            "price",
+            "products_limit",
+            "orders_limit",
+            "customers_limit",
+            "created_at"
+        )
+
+class StoreSubscriptionSerializer( serializers.ModelSerializer ):
+    plan = SubscriptionPlanSerializer( read_only=True )
+
+    class Meta:
+        model = StoreSubscription
+        fields = (
+            "id",
+            "plan",
+            "channel",
+            "expires_at",
+            "is_active",
+            "is_cancelled",
+            "needs_renewal",
+            "created_at"
+        )
+
+
 class StoreSerializer( serializers.ModelSerializer ):
     categories = CategorySerializer(many=True, read_only=True)
     categories_ids = serializers.PrimaryKeyRelatedField(
@@ -159,6 +208,7 @@ class StoreSerializer( serializers.ModelSerializer ):
         queryset=Admin.objects.all()
     )
     compressed_logo_url = serializers.SerializerMethodField( read_only=True )
+    my_subscription = StoreSubscriptionSerializer( read_only=True )
 
 
     def get_compressed_logo_url(self, obj):

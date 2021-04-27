@@ -31,7 +31,8 @@ from .models import (
     OrderItem,
     ProductStock,
     Payment,
-    OrdersTimestampedMetric
+    OrdersTimestampedMetric,
+    SubscriptionPlan
 )
 
 User = get_user_model()

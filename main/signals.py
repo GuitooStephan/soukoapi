@@ -11,6 +11,7 @@ from main.tasks import (
 )
 from .models import (
     Store,
+    StoreSubscription,
     Order,
     StorePeriodicTask
 )
@@ -40,3 +41,4 @@ def store_created( sender, instance, created, **kwargs ):
     if created:
         StorePeriodicTask.objects.schedule_create_store_orders_metrics( instance )
         StorePeriodicTask.objects.schedule_create_store_profit_metrics( instance )
+        StoreSubscription.objects.create(store=instance)
