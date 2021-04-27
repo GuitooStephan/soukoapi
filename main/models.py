@@ -524,7 +524,7 @@ class Store(models.Model):
 
 
 class SubscriptionPlan(models.Model):
-    FREE = 'FREE'
+    FREE = constants.FREE_PLAN
 
     PLANS = (
         (FREE, "Free"),

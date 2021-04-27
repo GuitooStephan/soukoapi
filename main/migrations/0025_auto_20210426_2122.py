@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+from main import constants
+
 def create_subscription_for_exiting_store(apps, schema_editor):
     Store = apps.get_model('main', 'Store')
     StoreSubscription = apps.get_model('main', 'StoreSubscription')
@@ -10,7 +12,7 @@ def create_subscription_for_exiting_store(apps, schema_editor):
         if not StoreSubscription.objects.filter( store=store ).exists():
             StoreSubscription.objects.create(
                 store=store,
-                plan=Plan.objects.get(plan_type=Plan.FREE)
+                plan=Plan.objects.get(plan_type=constants.FREE_PLAN)
             )
 
 
