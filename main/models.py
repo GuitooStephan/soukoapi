@@ -608,7 +608,7 @@ class StoreSubscription(models.Model):
         pass
 
     def hit_products_limit(self):
-        current_products_count = Product.objects.filter(store=self.store).count()
+        current_products_count = Product.objects.filter(store=self.store, is_active=True).count()
         if current_products_count >= self.plan.products_limit:
             return True
         return False
@@ -665,6 +665,11 @@ class Product(models.Model):
     selling_price = models.FloatField(
         verbose_name='Selling Price',
         blank=True, null=True, default=0.0
+    )
+
+    is_active = models.BooleanField(
+        verbose_name='Is active',
+        default=True
     )
 
     created_at = models.DateTimeField(

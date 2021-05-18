@@ -347,6 +347,7 @@ class ProductSerializer(serializers.ModelSerializer):
     total_stock = serializers.SerializerMethodField()
     num_of_orders =serializers.SerializerMethodField()
     compressed_product_picture_url = serializers.SerializerMethodField( read_only=True )
+    is_active = serializers.BooleanField( default=True )
 
     def get_total_stock(self, obj):
         return obj.get_total_stock()

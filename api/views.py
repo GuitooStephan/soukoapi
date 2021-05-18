@@ -367,7 +367,7 @@ class StoreProductsEndpoint(generics.ListAPIView):
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
-        return store.products.all()
+        return store.products.filter( is_active=True )
 
 
 class StoreProductsForCustomersEndpoint(generics.ListAPIView):
@@ -385,7 +385,7 @@ class StoreProductsForCustomersEndpoint(generics.ListAPIView):
 
     def get_queryset(self):
         store = get_object_or_404(Store.objects.filter( pk=self.kwargs["pk"] ))
-        return store.products.all()
+        return store.products.filter( is_active=True )
 
 
 class StoreOrdersEndpoint(generics.ListAPIView):
@@ -634,6 +634,12 @@ class ProductEndpoint(generics.RetrieveUpdateDestroyAPIView):
 
     def put(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, pk, *args, **kwargs):
+        product = self.get_object()
+        product.is_active = False;
+        product.save( update_fields=['is_active'] )
+        return Response( status=status.HTTP_204_NO_CONTENT )
 
 
 class ProductProductStocksEndpoint(generics.ListAPIView):
