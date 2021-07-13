@@ -129,10 +129,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = (
-            "id",
-            "name"
-        )
+        fields = ( "__all__" )
 
 class AdminSerializer(serializers.ModelSerializer):
     user = UserSerializer( read_only=True )
