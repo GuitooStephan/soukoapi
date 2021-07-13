@@ -217,6 +217,20 @@ class Category(models.Model):
         verbose_name='Category name'
     )
 
+    en = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name='Category name in english'
+    )
+
+    fr = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name='Category name in french'
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
