@@ -521,7 +521,7 @@ class Store(models.Model):
 
         return current_report
 
-    def _get_best_selling_product( self, start, end ):
+    def _get_best_selling_product( self, start=None, end=None ):
         products = Product.objects.filter(
             store=self
         ).order_by("created_at")
