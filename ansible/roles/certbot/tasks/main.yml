@@ -22,7 +22,7 @@
 
 - name: "Create link"
   file:
-    path=/usr/bin/certbot
+    dest=/usr/bin/certbot
     src=/snap/bin/certbot
     state=link
 
