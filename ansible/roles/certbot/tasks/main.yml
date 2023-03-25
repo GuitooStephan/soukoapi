@@ -22,9 +22,10 @@
 
 - name: "Create link"
   file:
-    dest=/usr/bin/certbot
     src=/snap/bin/certbot
+    path=/usr/bin/certbot
     state=link
+    force=yes
 
 - name: Check if Nginx exists
   stat: path=/etc/init.d/nginx
